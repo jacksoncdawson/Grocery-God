@@ -43,7 +43,15 @@ if st.session_state.page == "home":
       st.markdown(f"### Product {i+1}")
       st.text_input(f"Product", key=f"product_{i}")
       st.text_input(f"Brand", key=f"brand_{i}")
-      st.number_input(f"Price", min_value=0.0, step=0.01, key=f"price_{i}")
+
+      # Price
+      col1, col2 = st.columns(2)
+      with col1:
+        st.number_input(f"Price", min_value=0.0, step=0.01, key=f"price_{i}")
+      with col2:
+        st.radio(f"Sale Price?", ["Yes", "No"], key=f"sale_price_{i}", index=1, horizontal=True)
+      
+      # Amount
       col1, col2 = st.columns(2)
       with col1:
         st.number_input(f"Units", min_value=1, step=1, key=f"units_{i}")
@@ -63,10 +71,9 @@ if st.session_state.page == "home":
         brand = st.session_state.get(f"brand_{i}", None).strip()
         product = st.session_state.get(f"product_{i}", None).strip()
         price = st.session_state.get(f"price_{i}", None)
+        sale_price = st.session_state.get(f"sale_price{i}", "No")
         units = st.session_state.get(f"units_{i}", None)
         oz = st.session_state.get(f"oz_{i}", None)
-        if oz == 0.00:
-          oz = None
       
         if product:
           st.session_state.products.append(
@@ -74,6 +81,7 @@ if st.session_state.page == "home":
               "brand": brand,
               "product": product,
               "price": price,
+              "sale_price": sale_price,
               "units": units,
               "ounces": oz
             }
@@ -91,7 +99,7 @@ if st.session_state.page == "home":
           
           # Write the header if the file does not exist
           if not file_exists:
-            writer.writerow(["Store", "Brand", "Product", "Price", "Units", "Ounces"])
+            writer.writerow(["Store", "Brand", "Product", "Price", "Sale Price?", "Units", "Ounces"])
           
           # Write the product data
           writer.writerow([
@@ -99,6 +107,7 @@ if st.session_state.page == "home":
             brand,
             product,
             price,
+            sale_price,
             units,
             oz
           ])
