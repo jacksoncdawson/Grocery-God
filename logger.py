@@ -115,12 +115,9 @@ if st.session_state.page == "home":
         # Insert into Supabase
         response = supabase.table("grocery_data").insert(products_to_insert).execute()
       
-        if response.get("status_code") == 201:
-          st.success("Data successfully saved to Supabase!")
-          set_page("form")
-        else:
-          st.error(f"Failed to save data: {response}")
-          st.stop() 
+        # TODO: check for positive response code
+        
+        set_page("form")
 
 elif st.session_state.page == "form":
   st.title("Trip Logged")
