@@ -8,7 +8,15 @@ Version: 1.1
 
 import os
 import streamlit as st
-import csv
+from supabase import create_client, Client
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
 def set_page(page_name):
@@ -65,55 +73,54 @@ if st.session_state.page == "home":
     submit_button = st.form_submit_button(label="Submit")
 
     if submit_button:
+      
+      products_to_insert = []
 
       for i in range(num_products):
         
         brand = st.session_state.get(f"brand_{i}", None).strip()
         product = st.session_state.get(f"product_{i}", None).strip()
         price = st.session_state.get(f"price_{i}", None)
-        sale_price = st.session_state.get(f"sale_price{i}", "No")
+        sale_price = st.session_state.get(f"sale_price{i}", "No") == "Yes"
         units = st.session_state.get(f"units_{i}", None)
         oz = st.session_state.get(f"oz_{i}", None)
       
-        if product:
-          st.session_state.products.append(
-            {
-              "brand": brand,
-              "product": product,
-              "price": price,
-              "sale_price": sale_price,
-              "units": units,
-              "ounces": oz
-            }
-          )
+        if not product:
+          st.error(f"Error: Product {i+1} is missing a name.")
+          st.stop()
           
-        # Define the CSV file path
-        csv_file_path = os.path.join(os.path.dirname(__file__), "grocery_log.csv")
-
-        # Check if the CSV file exists
-        file_exists = os.path.isfile(csv_file_path)
-
-        # Open the CSV file in append mode
-        with open(csv_file_path, mode="a", newline="") as file:
-          writer = csv.writer(file)
-          
-          # Write the header if the file does not exist
-          if not file_exists:
-            writer.writerow(["Store", "Brand", "Product", "Price", "Sale Price?", "Units", "Ounces"])
-          
-          # Write the product data
-          writer.writerow([
-            st.session_state.store,
-            brand,
-            product,
-            price,
-            sale_price,
-            units,
-            oz
-          ])
-
-      set_page("form")
+        # Store product in session state (for display)
+        st.session_state.products.append(
+          {
+            "brand": brand,
+            "product": product,
+            "price": price,
+            "sale_price": sale_price,
+            "units": units,
+            "ounces": oz
+          }
+        )
+        
+        # Prepare data for Supabase insertion
+        products_to_insert.append({
+          "store": st.session_state.store,
+          "brand": brand,
+          "product": product,
+          "price": price,
+          "sale_price": sale_price,
+          "units": units,
+          "ounces": oz
+        })
+        
+        # Insert into Supabase
+        response = supabase.table("grocery_data").insert(products_to_insert).execute()
       
+        if response.get("status_code") == 201:
+          st.success("Data successfully saved to Supabase!")
+          set_page("form")
+        else:
+          st.error(f"Failed to save data: {response}")
+          st.stop() 
 
 elif st.session_state.page == "form":
   st.title("Trip Logged")
