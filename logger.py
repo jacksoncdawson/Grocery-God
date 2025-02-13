@@ -1,28 +1,47 @@
 """
 Program Name: Logger 
-Description: Collects and stores grocery product prices input by the user, with support for multiple products in a single submission
+Description: Collects and stores grocery product prices input by the user
 Author: Jack Dawson
 Date: 2/1/2025
-Version: 1.1
 """
 
 import os
 import streamlit as st
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
+def get_supabase_client():
+  SUPABASE_URL = os.getenv("SUPABASE_URL")
+  SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+  return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def set_page(page_name):
   st.session_state.page = page_name
   st.rerun()
 
+def fetch_latest_trip():
+  if "latest_trip" not in st.session_state:
+    response = supabase.table("trips").select("*").order("id", desc=True).limit(1).execute()
+    if response.data:
+      st.session_state.latest_trip = response.data[0]
+      st.session_state.trip_id = response.data[0]["id"]
+    else:
+      st.session_state.latest_trip = None
+      st.session_state.trip_id = None
+      
+def fetch_trip_products():
+  if "trip_products" not in st.session_state and st.session_state.trip_id:
+    response = supabase.table("trip_products").select("*").eq("trip_id", st.session_state.trip_id).execute()
+    st.session_state.trip_products = response.data if response.data else []
+
+def reset_trip_data():
+  for key in ["latest_trip", "trip_products", "trip_id"]:
+    st.session_state.pop(key, None)
+
+supabase = get_supabase_client()
 
 # Initialize session state for products
 if "products" not in st.session_state:
@@ -32,14 +51,17 @@ if "products" not in st.session_state:
 if "page" not in st.session_state:
     st.session_state.page = "home"
 
-
 if st.session_state.page == "home":
 
   st.title("Price Logger")
 
-  st.session_state.store = st.radio(
-    "Select a store:", ["Trader Joe's", "Safeway", "Costco"], horizontal=True
-  )
+  col1, col2 = st.columns(2)
+  with col1:
+    st.session_state.store = st.selectbox(
+      "Select a store:", ["Trader Joe's", "Safeway", "Costco"]
+    )
+  with col2:
+    trip_date = st.date_input("Grocery Trip Date", datetime.now()).isoformat()
 
   # Input for the number of products
   num_products = st.number_input("Number of products:", min_value=1, step=1)
@@ -59,7 +81,7 @@ if st.session_state.page == "home":
       with col2:
         st.radio(f"Sale Price?", ["Yes", "No"], key=f"sale_price_{i}", index=1, horizontal=True)
       
-      # Amount
+      # Quantity
       col1, col2 = st.columns(2)
       with col1:
         st.number_input(f"Units", min_value=1, step=1, key=f"units_{i}")
@@ -70,71 +92,108 @@ if st.session_state.page == "home":
       st.markdown("---")
 
     # Submit button
-    submit_button = st.form_submit_button(label="Submit")
+    submit_button = st.form_submit_button(label="Submit", disabled=st.session_state.get("submitting", False))
 
     if submit_button:
+      st.session_state["submitting"] = True
       
+      # Insert new trip into 'trips' table
+      trip_data = {"store": st.session_state.store, "trip_date":trip_date}
+      trip_response = supabase.table("trips").insert(trip_data).execute()
+      
+      # Retrieve the inserted trip ID
+      if trip_response.data and (len(trip_response.data) > 0):
+        trip_id = trip_response.data[0]["id"]
+      else:
+        st.error("Error: Could not log trip.")
+        st.stop()
+      
+      # Prepare list of products to insert
       products_to_insert = []
-
       for i in range(num_products):
         
-        brand = st.session_state.get(f"brand_{i}", None).strip()
-        product = st.session_state.get(f"product_{i}", None).strip()
+        brand = st.session_state.get(f"brand_{i}", None).strip().lower()
+        product = st.session_state.get(f"product_{i}", None).strip().lower()
         price = st.session_state.get(f"price_{i}", None)
-        sale_price = st.session_state.get(f"sale_price{i}", "No") == "Yes"
+        sale_price = st.session_state.get(f"sale_price_{i}", "No") == "Yes"
         units = st.session_state.get(f"units_{i}", None)
-        oz = st.session_state.get(f"oz_{i}", None)
+        ounces = st.session_state.get(f"oz_{i}", None)
       
         if not product:
           st.error(f"Error: Product {i+1} is missing a name.")
           st.stop()
-          
-        # Store product in session state (for display)
-        st.session_state.products.append(
-          {
-            "brand": brand,
-            "product": product,
-            "price": price,
-            "sale_price": sale_price,
-            "units": units,
-            "ounces": oz
-          }
-        )
         
         # Prepare data for Supabase insertion
         products_to_insert.append({
-          "store": st.session_state.store,
-          "brand": brand,
+          "trip_id": trip_id,
           "product": product,
+          "brand": brand,
           "price": price,
           "sale_price": sale_price,
           "units": units,
-          "ounces": oz
+          "ounces": ounces
         })
         
-        # Insert into Supabase
-        response = supabase.table("grocery_data").insert(products_to_insert).execute()
+      # Insert into Supabase
+      if products_to_insert:
+        products_response = supabase.table("trip_products").insert(products_to_insert).execute()
       
-        # TODO: check for positive response code
+      # Open up Submission
+      st.session_state["submitting"] = False
+      
+      # Finally, go to form page
+      set_page("form")
+
+
+if st.session_state.page == "form":
+  
+  fetch_latest_trip()
+  fetch_trip_products()
+
+  if not st.session_state.latest_trip:
+    st.error("No trips found.")
+  else:
+    
+    st.title("Trip Logged!")
+    
+    latest_trip = st.session_state.latest_trip
+    trip_id = st.session_state.trip_id
+    
+    trip_products = st.session_state.trip_products
+
+    # Display trip details
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+      st.markdown(f"### Store: {latest_trip['store']}")
+      st.markdown(f"**Date:** {latest_trip['trip_date']}")
+    with col2:
+      if st.button("**Log New Trip?**"):
+        reset_trip_data()
+        set_page("home")
+    
+    st.markdown("---")
+
+    # Display trip items
+    if trip_products:
+      st.markdown("### Purchased Products:")
+      for product in trip_products:
         
-        set_page("form")
-
-elif st.session_state.page == "form":
-  st.title("Trip Logged")
-
-  if st.session_state.products:
-    st.write(f"### Submitted {st.session_state.store} Trip: ")
-    for product in st.session_state.products:
-      
-      st.markdown(f"**Product:** {product['product']}")
-      
-      if product['brand']:
-        st.markdown(f"**Brand:** {product['brand']}")
-      
-      st.markdown(f"**Price:** ${product['price']:.2f}")
-      st.markdown(f"**Units:** {product['units']}")
-      
-      if product['ounces']:
-        st.markdown(f"**Ounces:** {product['ounces']}")
-      
-      st.markdown("---")
+        st.markdown(f"**Product:** {product["product"]}")
+        
+        if product["brand"]:
+          st.markdown(f"**Brand:** {product["brand"]}")
+          
+        st.markdown(f"**Price:** ${product['price']:.2f}")
+        st.markdown(f"**Units:** {product['units']}")
+        
+        if product["ounces"]:
+          st.markdown(f"**Ounces:** {product["ounces"]}")
+        
+        sale_text = "Yes" if product["sale_price"] else "No"
+        st.markdown(f"**On Sale?** {sale_text}")
+        
+        st.markdown("---")
+    else:
+      st.write("No items found for this trip.")
