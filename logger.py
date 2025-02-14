@@ -7,7 +7,7 @@ Date: 2/1/2025
 
 import os
 import streamlit as st
-from supabase import create_client, Client
+from supabase import create_client
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -18,11 +18,13 @@ def get_supabase_client():
   SUPABASE_KEY = os.getenv("SUPABASE_KEY")
   return create_client(SUPABASE_URL, SUPABASE_KEY)
 
+supabase = get_supabase_client()
+
 def set_page(page_name):
   st.session_state.page = page_name
   st.rerun()
 
-def fetch_latest_trip():
+def fetch_trip_data():
   if "latest_trip" not in st.session_state:
     response = supabase.table("trips").select("*").order("id", desc=True).limit(1).execute()
     if response.data:
@@ -31,27 +33,71 @@ def fetch_latest_trip():
     else:
       st.session_state.latest_trip = None
       st.session_state.trip_id = None
+      st.session_state.trip_products = []
+      return
       
-def fetch_trip_products():
-  if "trip_products" not in st.session_state and st.session_state.trip_id:
+  if "trip_products" not in st.session_state:
     response = supabase.table("trip_products").select("*").eq("trip_id", st.session_state.trip_id).execute()
     st.session_state.trip_products = response.data if response.data else []
 
 def reset_trip_data():
-  for key in ["latest_trip", "trip_products", "trip_id"]:
-    st.session_state.pop(key, None)
+  st.session_state.pop("latest_trip", None)
+  st.session_state.pop("trip_products", None)
+  st.session_state.pop("trip_id", None)
+  st.session_state.pop("store", None)
+  st.session_state.pop("trip_date", None)
+  st.session_state.pop("submitted", False)
 
-supabase = get_supabase_client()
+def insert_trip_and_products(num_products):
+  trip_data = {"store": st.session_state.store, "trip_date": st.session_state.trip_date}
+  
+  # Validate products 
+  products_to_insert = []
+  for i in range(num_products):
+    
+    product = st.session_state.get(f"product_{i}", "").strip().lower()
+    if not product:
+      st.warning(f"Warning: Product {i+1} is missing a name.")
+      return None
+
+    products_to_insert.append({
+      "trip_id": None, # Temporary setting
+      "product": product,
+      "brand": st.session_state.get(f"brand_{i}", "").strip().lower(),
+      "price": st.session_state.get(f"price_{i}", 0.0),
+      "sale_price": st.session_state.get(f"sale_price_{i}", "No") == "Yes",
+      "units": st.session_state.get(f"units_{i}", 1),
+      "ounces": st.session_state.get(f"oz_{i}", None)
+      })
+    
+  # Now insert the trip
+  trip_response = supabase.table("trips").insert(trip_data).execute()
+  if not trip_response.data or len(trip_response.data) == 0:
+    return None
+  
+  trip_id = trip_response.data[0]["id"]
+
+  # Update product entries with trip_id
+  for product in products_to_insert:
+    product["trip_id"] = trip_id
+  
+  # Insert products in batch
+  supabase.table("trip_products").insert(products_to_insert).execute()
+  return trip_id
+st
+# Initialize session state for submission
+if "submitted" not in st.session_state:
+  st.session_state.submitted = False
 
 # Initialize session state for products
 if "products" not in st.session_state:
-    st.session_state.products = []
+  st.session_state.products = []
 
 # Initialize session state for page
 if "page" not in st.session_state:
-    st.session_state.page = "home"
+  st.session_state.page = "form"
 
-if st.session_state.page == "home":
+if st.session_state.page == "form":
 
   st.title("Price Logger")
 
@@ -61,7 +107,7 @@ if st.session_state.page == "home":
       "Select a store:", ["Trader Joe's", "Safeway", "Costco"]
     )
   with col2:
-    trip_date = st.date_input("Grocery Trip Date", datetime.now()).isoformat()
+    st.session_state.trip_date = st.date_input("Grocery Trip Date", datetime.now()).isoformat()
 
   # Input for the number of products
   num_products = st.number_input("Number of products:", min_value=1, step=1)
@@ -91,64 +137,27 @@ if st.session_state.page == "home":
         )
       st.markdown("---")
 
-    # Submit button
-    submit_button = st.form_submit_button(label="Submit", disabled=st.session_state.get("submitting", False))
+    submit_button = st.form_submit_button(label="Submit", disabled=st.session_state.submitted)
 
     if submit_button:
-      st.session_state["submitting"] = True
-      
-      # Insert new trip into 'trips' table
-      trip_data = {"store": st.session_state.store, "trip_date":trip_date}
-      trip_response = supabase.table("trips").insert(trip_data).execute()
-      
-      # Retrieve the inserted trip ID
-      if trip_response.data and (len(trip_response.data) > 0):
-        trip_id = trip_response.data[0]["id"]
-      else:
-        st.error("Error: Could not log trip.")
-        st.stop()
-      
-      # Prepare list of products to insert
-      products_to_insert = []
-      for i in range(num_products):
+      if not st.session_state.submitted:
         
-        brand = st.session_state.get(f"brand_{i}", None).strip().lower()
-        product = st.session_state.get(f"product_{i}", None).strip().lower()
-        price = st.session_state.get(f"price_{i}", None)
-        sale_price = st.session_state.get(f"sale_price_{i}", "No") == "Yes"
-        units = st.session_state.get(f"units_{i}", None)
-        ounces = st.session_state.get(f"oz_{i}", None)
-      
-        if not product:
-          st.error(f"Error: Product {i+1} is missing a name.")
+        st.session_state.submitted = True
+        
+        trip_id = insert_trip_and_products(num_products)
+        if not trip_id:
           st.stop()
-        
-        # Prepare data for Supabase insertion
-        products_to_insert.append({
-          "trip_id": trip_id,
-          "product": product,
-          "brand": brand,
-          "price": price,
-          "sale_price": sale_price,
-          "units": units,
-          "ounces": ounces
-        })
-        
-      # Insert into Supabase
-      if products_to_insert:
-        products_response = supabase.table("trip_products").insert(products_to_insert).execute()
-      
-      # Open up Submission
-      st.session_state["submitting"] = False
-      
-      # Finally, go to form page
-      set_page("form")
+          st.session_state.submitted = False
 
+        set_page("summary")
+        st.session_state.submitted = False
+      else:
+        set_page("summary")
+      
 
-if st.session_state.page == "form":
+if st.session_state.page == "summary":
   
-  fetch_latest_trip()
-  fetch_trip_products()
+  fetch_trip_data()
 
   if not st.session_state.latest_trip:
     st.error("No trips found.")
@@ -171,7 +180,7 @@ if st.session_state.page == "form":
     with col2:
       if st.button("**Log New Trip?**"):
         reset_trip_data()
-        set_page("home")
+        set_page("form")
     
     st.markdown("---")
 
