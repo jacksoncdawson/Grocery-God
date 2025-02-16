@@ -1,8 +1,32 @@
 """
 Program Name: Logger 
-Description: Collects and stores grocery product prices input by the user
+Description: Allows users to log purchased grocery products. The data is stored in a Supabase database for future reference and analysis.
 Author: Jack Dawson
-Date: 2/1/2025
+Date: 2/16/2025
+
+Modules:
+- os: For accessing environment variables.
+- streamlit: For creating the web interface.
+- supabase: For interacting with the Supabase database.
+- dotenv: For loading environment variables from a .env file.
+- datetime: For handling date and time operations.
+
+Functions:
+- get_supabase_client: Initializes and returns a Supabase client using environment variables.
+- set_page: Sets the current page in the Streamlit session state and triggers a rerun.
+- fetch_trip_data: Fetches the latest trip data and associated products from the Supabase database.
+- insert_trip_data: Validates and inserts trip and product data into the Supabase database.
+- reset_trip_data: Resets the trip-related data in the Streamlit session state.
+
+Usage:
+1. The user selects a store and date for the grocery trip.
+2. The user inputs the number of products and details for each product.
+3. Upon submission, the data is validated and stored in the Supabase database.
+4. The user can view a summary of the logged trip and products.
+
+Note:
+- Ensure that the SUPABASE_URL and SUPABASE_KEY environment variables are set in the .env file.
+- The program uses Streamlit for the web interface, so it should be run in a Streamlit environment.
 """
 
 import os
@@ -40,20 +64,12 @@ def fetch_trip_data():
     response = supabase.table("trip_products").select("*").eq("trip_id", st.session_state.trip_id).execute()
     st.session_state.trip_products = response.data if response.data else []
 
-def reset_trip_data():
-  st.session_state.pop("latest_trip", None)
-  st.session_state.pop("trip_products", None)
-  st.session_state.pop("trip_id", None)
-  st.session_state.pop("store", None)
-  st.session_state.pop("trip_date", None)
-  st.session_state.pop("submitted", False)
-
-def insert_trip_and_products(num_products):
+def insert_trip_data():
   trip_data = {"store": st.session_state.store, "trip_date": st.session_state.trip_date}
   
   # Validate products 
   products_to_insert = []
-  for i in range(num_products):
+  for i in range(st.session_state.num_products):
     
     product = st.session_state.get(f"product_{i}", "").strip().lower()
     if not product:
@@ -82,9 +98,22 @@ def insert_trip_and_products(num_products):
     product["trip_id"] = trip_id
   
   # Insert products in batch
-  supabase.table("trip_products").insert(products_to_insert).execute()
+  batch_response = supabase.table("trip_products").insert(products_to_insert).execute()
+  if not batch_response.data or len(trip_response.data) == 0:
+    return None
+  
   return trip_id
-st
+
+def reset_trip_data():
+  st.session_state.pop("latest_trip", None)
+  st.session_state.pop("trip_products", None)
+  st.session_state.pop("trip_id", None)
+  st.session_state.pop("store", None)
+  st.session_state.pop("trip_date", None)
+  
+  st.session_state.submitted = False
+  st.session_state.num_products = 1
+
 # Initialize session state for submission
 if "submitted" not in st.session_state:
   st.session_state.submitted = False
@@ -110,14 +139,14 @@ if st.session_state.page == "form":
     st.session_state.trip_date = st.date_input("Grocery Trip Date", datetime.now()).isoformat()
 
   # Input for the number of products
-  num_products = st.number_input("Number of products:", min_value=1, step=1)
+  num_products = st.number_input("Number of products:", min_value=1, step=1, key="num_products")
 
   # Form for entering products
   with st.form(key="grocery_form"):
 
-    for i in range(num_products):
+    for i in range(st.session_state.num_products):
       st.markdown(f"### Product {i+1}")
-      st.text_input(f"Product", key=f"product_{i}")
+      st.text_input(f"Product", key=f"product_{i}") 
       st.text_input(f"Brand", key=f"brand_{i}")
 
       # Price
@@ -137,23 +166,19 @@ if st.session_state.page == "form":
         )
       st.markdown("---")
 
-    submit_button = st.form_submit_button(label="Submit", disabled=st.session_state.submitted)
+    submit_button = st.form_submit_button(label="Submit")
 
     if submit_button:
       if not st.session_state.submitted:
         
         st.session_state.submitted = True
         
-        trip_id = insert_trip_and_products(num_products)
+        trip_id = insert_trip_data()
         if not trip_id:
-          st.stop()
           st.session_state.submitted = False
+          st.stop()
 
         set_page("summary")
-        st.session_state.submitted = False
-      else:
-        set_page("summary")
-      
 
 if st.session_state.page == "summary":
   
@@ -162,7 +187,6 @@ if st.session_state.page == "summary":
   if not st.session_state.latest_trip:
     st.error("No trips found.")
   else:
-    
     st.title("Trip Logged!")
     
     latest_trip = st.session_state.latest_trip
