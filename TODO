@@ -1,1 +1,6 @@
-- Remove DB queries for fetching latest_trip (its already in session_state!)
+- UPDATE FETCH IMPLEMENTATION / (Use session state)
+- REFINE INSERT IMPLEMENTATION
+
+- Disable "Enter to submit form"
+
+- Edit previous trips option
