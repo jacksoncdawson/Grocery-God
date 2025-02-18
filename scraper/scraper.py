@@ -3,49 +3,57 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import csv
 
-# Initialize WebDriver (Ensure chromedriver is installed)
+# Initialize WebDriver 
 options = webdriver.ChromeOptions()
-# options.add_argument("--headless")  # Run in headless mode (optional)
+options.add_argument("--headless")  
 driver = webdriver.Chrome(options=options)
 
 # Open the Safeway Weekly Ad page
-driver.get("https://www.safeway.com/weeklyad/")  # Ensure this is the correct URL
+driver.get("https://www.safeway.com/weeklyad/")
 
 try:
-  
-    time.sleep(30)
-    # Wait for iframes to load
-    WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
 
-    # Locate and switch to the "Main Panel" iframe
-    iframe = driver.find_element(By.XPATH, "//iframe[@title='Main Panel']")
-    driver.switch_to.frame(iframe)
+  # Wait for iframes to load
+  time.sleep(30)
+  # Wait for iframes to load
+  WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "iframe")))
 
-    # Wait for the target elements to load inside the iframe
-    WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "sfml-flyer-image")))
+  # Locate and switch to the "Main Panel" iframe
+  main_panel = driver.find_element(By.XPATH, "//iframe[@title='Main Panel']")
+  driver.switch_to.frame(main_panel)
 
-    # Find all sfml-flyer-image elements (each represents a section of the flyer)
-    flyer_images = driver.find_elements(By.CSS_SELECTOR, 
-        "flipp-router flipp-publication-page div div.sfml-wrapper flipp-sfml-component sfml-storefront div sfml-linear-layout sfml-flyer-image"
-    )
+  # Wait for the target elements to load inside the iframe
+  WebDriverWait(driver, 10).until(EC.presence_of_all_elements_located((By.TAG_NAME, "sfml-flyer-image")))
 
-    all_aria_labels = []  # Store all aria-labels
+  # Find all sfml-flyer-image elements (each represents a section of the flyer)
+  flyer_images = driver.find_elements(By.CSS_SELECTOR, 
+    "flipp-router flipp-publication-page div div.sfml-wrapper flipp-sfml-component sfml-storefront div sfml-linear-layout sfml-flyer-image"
+  )
 
-    # Loop through each flyer section and extract its flyer-image-a elements
-    for index, flyer in enumerate(flyer_images, start=1):
-        flyer_items = flyer.find_elements(By.TAG_NAME, "sfml-flyer-image-a")
-        
-        for item in flyer_items:
-            aria_label = item.get_attribute("aria-label")
-            if aria_label:  # Ensure we capture only non-empty aria-labels
-                all_aria_labels.append(aria_label)
+  all_aria_labels = [] 
 
-    # Print all extracted aria-labels
-    print("Extracted aria-labels:")
-    for i, label in enumerate(all_aria_labels, start=1):
-        print(f"{i}: {label}")
+  # Loop through each flyer section and extract its flyer-image-a elements
+  for index, flyer in enumerate(flyer_images, start=1):
+    flyer_items = flyer.find_elements(By.TAG_NAME, "sfml-flyer-image-a")
+    
+    for item in flyer_items:
+      aria_label = item.get_attribute("aria-label")
+      if aria_label:  # Ensure we capture only non-empty aria-labels
+        all_aria_labels.append(aria_label)
+
+
+  # Define the CSV file path
+  csv_file_path = "/Users/jackcdawson/Desktop/dev/Python Projects/Grocery God/scraper/aria_labels.csv"
+
+  # Write the aria labels to the CSV file
+  with open(csv_file_path, mode='w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow([f"Aria Labels"])  # Temporary Header
+    for label in all_aria_labels:
+      writer.writerow([label])
 
 finally:
-    # Close the WebDriver
-    driver.quit()
+  # Close the WebDriver
+  driver.quit()
