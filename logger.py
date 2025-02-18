@@ -29,13 +29,12 @@ Note:
 - The program uses Streamlit for the web interface, so it should be run in a Streamlit environment.
 """
 
-import os
 import streamlit as st
 from datetime import datetime
-from db.database import insert_trip_data, fetch_trip_data
+from db.database import supabase, insert_trip_data, fetch_trip_data, fetch_trip_products
 
 
-""" INIT Functions """
+# --- INIT Functions ---
 
 def init_state():
   # Initialize session state for submission
@@ -51,27 +50,11 @@ def init_state():
     st.session_state.page = "form"
 
 
-""" HELPER Functions """
+# --- HELPER Functions --- 
 
 def set_page(page_name):
   st.session_state.page = page_name
   st.rerun()
-
-def fetch_trip_data():
-  if "latest_trip" not in st.session_state:
-    response = supabase.table("trips").select("*").order("id", desc=True).limit(1).execute()
-    if response.data:
-      st.session_state.latest_trip = response.data[0]
-      st.session_state.trip_id = response.data[0]["id"]
-    else:
-      st.session_state.latest_trip = None
-      st.session_state.trip_id = None
-      st.session_state.trip_products = []
-      return
-      
-  if "trip_products" not in st.session_state:
-    response = supabase.table("trip_products").select("*").eq("trip_id", st.session_state.trip_id).execute()
-    st.session_state.trip_products = response.data if response.data else []
 
 def handle_trip_submission():
   store = st.session_state.store
@@ -80,10 +63,21 @@ def handle_trip_submission():
   # Prepare list of products
   products_to_insert = []
   for i in range(st.session_state.num_products):
+    
+    # Verify Product Name
     product_name = st.session_state.get(f"product_{i}", "").strip().lower()
     if not product_name:
       st.warning(f"Warning: Product {i+1} is missing a name.")
-      return None  # Prevent submission if any product is missing a name
+      return False
+    
+    # Verify Price
+    product_price = st.session_state.get(f"price_{i}", "")
+    if not isinstance(product_price, float):
+      st.warning(f"Warning: Product {i+1} does not have an appropriate price set.")
+      return False
+    elif product_price <= 0:
+      st.warning(f"Warning: The price set for Product {i+1} is less than or equal to zero.")
+      return False
 
     products_to_insert.append({
       "product": product_name,
@@ -98,13 +92,27 @@ def handle_trip_submission():
   trip_id = insert_trip_data(store, trip_date, products_to_insert)
 
   if trip_id:
-    st.session_state.submitted = True
     st.session_state.trip_id = trip_id  # Store trip ID for further use
-    return trip_id
+    return True
   else:
     st.error("Failed to log trip. Please try again.")
-    return None
+    return False
 
+def load_latest_trip():
+  
+  latest_trip = fetch_trip_data()
+    
+  if latest_trip:
+    st.session_state.latest_trip = latest_trip
+    st.session_state.trip_id = latest_trip["id"]
+  else:
+    st.session_state.latest_trip = None
+    st.session_state.trip_id = None
+    st.session_state.trip_products = []
+    return
+  
+  if "trip_products" not in st.session_state:
+    st.session_state.trip_products = fetch_trip_products(st.session_state.trip_id)
 
 def reset_trip_data():
   st.session_state.pop("latest_trip", None)
@@ -117,7 +125,7 @@ def reset_trip_data():
   st.session_state.num_products = 1
 
 
-""" MAIN """
+# --- Main ---
 
 init_state()
 
@@ -162,22 +170,22 @@ if st.session_state.page == "form":
         )
       st.markdown("---")
 
-    submit_button = st.form_submit_button(label="Submit")
+    submit_button = st.form_submit_button(label="Submit Trip", use_container_width=True)
 
     if submit_button:
       if not st.session_state.submitted:
         
-        trip_id = handle_trip_submission()
-        if not trip_id:
+        submission_success = handle_trip_submission()
+        if submission_success:
+          st.session_state.submitted = True
+          set_page("summary")
+        else:
           st.session_state.submitted = False
-          st.stop()
-
-        set_page("summary")
 
 # Summary Page
 if st.session_state.page == "summary":
   
-  fetch_trip_data()
+  load_latest_trip()
 
   if not st.session_state.latest_trip:
     st.error("No trips found.")
