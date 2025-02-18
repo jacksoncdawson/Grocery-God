@@ -1,0 +1,9 @@
+# Grocery God
+
+## Description
+Grocery Logger is a web application that allows users to log purchased grocery products. The data is stored in a Supabase database for future reference and analysis. The application is built using Streamlit for the web interface.
+
+## Features
+- Log grocery trips with store name, date, and product details.
+- View a summary of the logged trip and products.
+- Data is stored in a Supabase database for easy access and analysis.
