@@ -23,7 +23,7 @@ def clean_data(file_path):
       product, rest = row.split(", buy", 1)
       deal, price = rest.split(",", 1)
       products.append(product.strip())
-      deals.append(deal.strip())
+      deals.append("buy " + deal.strip())
       prices.append(price.strip())
       
     elif ", free " in row:
@@ -65,7 +65,7 @@ def clean_data(file_path):
       product, rest = row.split(", $", 1)
       deal, price = rest.split(", ", 1)
       products.append(product.strip())
-      deals.append(f"${deal.strip()}")
+      deals.append("$" + deal.strip())
       prices.append(price.strip())
       
     elif re.search(r", \d+\% off", row):
@@ -89,7 +89,7 @@ def clean_data(file_path):
       product, rest = row.split(", spend $", 1)
       deal, price = rest.split(", ", 1)
       products.append(product.strip())
-      deals.append(f"spend ${deal.strip()}")
+      deals.append("spend $" + deal.strip())
       prices.append(price.strip())
       
     else:

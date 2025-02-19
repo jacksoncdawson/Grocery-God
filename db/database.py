@@ -10,6 +10,8 @@ SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 
+""" Logger DB Functions """
+
 # Fetch the latest trip from the database.
 def fetch_trip_data():
   response = supabase.table("trips").select("*").order("id", desc=True).limit(1).execute()
@@ -19,7 +21,6 @@ def fetch_trip_data():
 def fetch_trip_products(trip_id):
   response = supabase.table("trip_products").select("*").eq("trip_id", trip_id).execute()
   return response.data if response.data else []
-
 
 # Insert trip and product data
 def insert_trip_data(store, trip_date, products):
@@ -38,3 +39,7 @@ def insert_trip_data(store, trip_date, products):
   supabase.table("trip_products").insert(products).execute()
   
   return trip_id
+
+
+""" Scraper DB Functions """
+
