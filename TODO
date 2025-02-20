@@ -1,3 +1,4 @@
-- Disable "Enter to submit form"
+- parser.py
+- - Fix normalizing price feature
 
 - Edit previous trips option

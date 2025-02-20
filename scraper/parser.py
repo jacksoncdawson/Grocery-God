@@ -1,13 +1,11 @@
 import pandas as pd
 import re
 
-def clean_data(file_path):
-  """Reads a CSV file, cleans the deals data, and returns a structured DataFrame."""
-  df = pd.read_csv(file_path, header=None, names=["Raw Data"])
-
+def sort_data(raw_data):
   products, deals, prices = [], [], []
-
-  for row in df["Raw Data"]:
+  
+  # Initial Sorting (sort every relevant item by product, deal, price)
+  for row in raw_data:
       
     row = row.lower()
     
@@ -93,21 +91,65 @@ def clean_data(file_path):
       prices.append(price.strip())
       
     else:
-      print(row)
-  
-  # Construct cleaned DataFrame
-  cleaned_df = pd.DataFrame({
-    "Product": products,
-    "Safeway Deal": deals,
-    "Price": prices
-  })
+      pass # we don't need these rows
+      
+  return products, deals, prices
 
-  return cleaned_df
+def clean_data(file_path):
+  raw_df = pd.read_csv(file_path, names=["Raw Data"])
+  products, deals, prices = sort_data(raw_df["Raw Data"])
+  
+  # Construct DataFrame
+  df = pd.DataFrame({
+    "product": products,
+    "deal": deals,
+    "price": prices,
+  })
+  
+  # Initialize empty columns for unit and restraints
+  df["unit"] = None
+  df["restraints"] = None
+  
+  for index, row in df.iterrows():
+
+    # clean extra symbols and words
+    if "member price" in row["price"]:
+      df.at[index, "price"] = row["price"].replace("member price", "").strip()
+      row["price"] = df.at[index, "price"]
+      
+    if "$" in row["price"]:
+      df.at[index, "price"] = row["price"].replace("$", "").strip()
+      row["price"] = df.at[index, "price"]
+      
+    # clean & collect units
+    if "ea" in row["price"]:
+      df.at[index, "price"] = row["price"].replace("ea", "").strip()
+      row["price"] = df.at[index, "price"]
+      
+      df.at[index, "unit"] = 
+
+    if "lb" in row["price"]:
+      df.at[index, "price"] = row["price"].replace("ea", "").strip()
+      row["price"] = df.at[index, "price"]
+    
+    # # Extract unit information
+    # if " lb" in row["price"]:
+    #   df.at[index, "unit"] = "lb"
+    #   df.at[index, "price"] = row["price"].replace(" lb", "").strip()
+    # elif " ea" in row["price"]:
+    #   df.at[index, "unit"] = "ea"
+    #   df.at[index, "price"] = row["price"].replace(" ea", "").strip()
+    
+    print(index, df.at[index, "price"])
+    
+    
+  
+  return df
 
 if __name__ == "__main__":
   file_path = "scraper/aria_labels.csv"
   cleaned_df = clean_data(file_path)
 
   # Save to a cleaned CSV
-  cleaned_df.to_csv("cleaned_safeway_deals.csv", index=False)
+  cleaned_df.to_csv("/Users/jackcdawson/Desktop/dev/Python Projects/Grocery God/scraper/cleaned_safeway_deals.csv", index=False)
   print("Cleaned data saved to cleaned_safeway_deals.csv")
