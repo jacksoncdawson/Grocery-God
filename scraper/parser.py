@@ -14,7 +14,10 @@ def sort_data(raw_data):
       product, price = row.split(", , ")
       products.append(product.strip())
       deals.append(None)
-      prices.append(price.strip())
+      if price.strip() == "":
+        prices.append(None)
+      else:
+        prices.append(price.strip())
       
     # Check for various Safeway Deals
     elif ", buy " in row:
@@ -106,43 +109,31 @@ def clean_data(file_path):
     "price": prices,
   })
   
+  # Drop rows that have both "deal" and "price" as NA
+  df = df.dropna(subset=["deal", "price"], how='all')
+  
   # Initialize empty columns for unit and restraints
   df["unit"] = None
   df["restraints"] = None
+
+  # clean extra symbols and words
+  df["price"] = df["price"].str.replace("member price", "", regex=False).str.strip()
+  df["price"] = df["price"].str.replace("$", "", regex=False).str.strip()
+  df["price"] = df["price"].str.replace(",", "", regex=False).str.strip()
   
+  # clean & collect units
+  df.loc[df["price"].str.contains("ea", na=False), "unit"] = "ea"
+  df["price"] = df["price"].str.replace("ea", "", regex=False).str.strip()
+  
+  df.loc[df["price"].str.contains("lb", na=False), "unit"] = "lb"
+  df["price"] = df["price"].str.replace("lb", "", regex=False).str.strip()
+  
+  # Normalize "x for y" deals
+  
+  
+  # Print (index, price) for every row in the DataFrame
   for index, row in df.iterrows():
-
-    # clean extra symbols and words
-    if "member price" in row["price"]:
-      df.at[index, "price"] = row["price"].replace("member price", "").strip()
-      row["price"] = df.at[index, "price"]
-      
-    if "$" in row["price"]:
-      df.at[index, "price"] = row["price"].replace("$", "").strip()
-      row["price"] = df.at[index, "price"]
-      
-    # clean & collect units
-    if "ea" in row["price"]:
-      df.at[index, "price"] = row["price"].replace("ea", "").strip()
-      row["price"] = df.at[index, "price"]
-      
-      df.at[index, "unit"] = 
-
-    if "lb" in row["price"]:
-      df.at[index, "price"] = row["price"].replace("ea", "").strip()
-      row["price"] = df.at[index, "price"]
-    
-    # # Extract unit information
-    # if " lb" in row["price"]:
-    #   df.at[index, "unit"] = "lb"
-    #   df.at[index, "price"] = row["price"].replace(" lb", "").strip()
-    # elif " ea" in row["price"]:
-    #   df.at[index, "unit"] = "ea"
-    #   df.at[index, "price"] = row["price"].replace(" ea", "").strip()
-    
-    print(index, df.at[index, "price"])
-    
-    
+    print(f"{index} {row['price']}")
   
   return df
 
