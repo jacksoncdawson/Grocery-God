@@ -18,6 +18,10 @@ def sort_data(raw_data):
         prices.append(None)
       else:
         prices.append(price.strip())
+        
+    # delete "save $x" rows - too much fuss
+    elif "save " in row:
+      pass
       
     # Check for various Safeway Deals
     elif ", buy " in row:
@@ -39,13 +43,6 @@ def sort_data(raw_data):
       deal, price = rest.split(",", 1)
       products.append(product.strip())
       deals.append("earn " + deal.strip())
-      prices.append(price.strip())
-      
-    elif ", save " in row:
-      product, rest = row.split(", save", 1)
-      deal, price = rest.split(",", 1)
-      products.append(product.strip())
-      deals.append("save " + deal.strip())
       prices.append(price.strip())
   
     elif ", up " in row:
@@ -112,33 +109,93 @@ def clean_data(file_path):
   # Drop rows that have both "deal" and "price" as NA
   df = df.dropna(subset=["deal", "price"], how='all')
   
-  # Initialize empty columns for unit and restraints
-  df["unit"] = None
-  df["restraints"] = None
+  # Drop rows that have a negative price discount 
+  df = df[~df["price"].str.contains("off", na=False)]
+  df = df[~df["deal"].str.contains("off", na=False)]
+  
+  
+  # Initialize empty columns for units, unit_price, and ounces
+  df["units"] = 1
+  df["unit_price"] = None
+  df["ounces"] = None
 
-  # clean extra symbols and words
-  df["price"] = df["price"].str.replace("member price", "", regex=False).str.strip()
-  df["price"] = df["price"].str.replace("$", "", regex=False).str.strip()
-  df["price"] = df["price"].str.replace(",", "", regex=False).str.strip()
+  def clean_price_column(df):
+    # clean extra symbols and words
+    df["price"] = df["price"].str.replace("member price", "", regex=False).str.strip()
+    df["price"] = df["price"].str.replace("$", "", regex=False).str.strip()
+    df["price"] = df["price"].str.replace(",", "", regex=False).str.strip()
+    df["price"] = df["price"].str.replace("or more", "", regex=False).str.strip()
+    df["price"] = df["price"].str.replace("starting at", "", regex=False).str.strip()
+    
+    # clean units
+    df["price"] = df["price"].str.replace("ea", "", regex=False).str.strip()
+    
+    df.loc[df["price"].str.contains("lb", na=False), "ounces"] = "16"
+    df["price"] = df["price"].str.replace("lb", "", regex=False).str.strip()
+    
+    # catch constraints
+    def extract_constraints(price):
+        
+      # extract minimum purchase constraint
+      match = re.search(r"when\s*you\s*buy\s*(\d+)", price)
+      if match:
+        units = match.group(1)
+        price = price.replace(match.group(0), "").strip()
+      else:
+        units = 1
+      
+      # extract price complexity
+      match = re.search(r"(\d+)\s*(for|/)\s*(\d+\.\d+|\d+)", price)
+      if match:
+        unit_price = round(float(match.group(3)) / float(match.group(1)), 2)
+        price = price.replace(match.group(0), match.group(3)).strip()
+      else:
+        unit_price = float(price) if price else None
+
+      return price, unit_price, units
+
+    df["price"], df["unit_price"], df["units"] = zip(*df["price"].apply(extract_constraints))
+    
+    return df
+
+  df = clean_price_column(df)
   
-  # clean & collect units
-  df.loc[df["price"].str.contains("ea", na=False), "unit"] = "ea"
-  df["price"] = df["price"].str.replace("ea", "", regex=False).str.strip()
-  
-  df.loc[df["price"].str.contains("lb", na=False), "unit"] = "lb"
-  df["price"] = df["price"].str.replace("lb", "", regex=False).str.strip()
-  
-  # Normalize "x for y" deals
-  
-  
-  # Print (index, price) for every row in the DataFrame
-  for index, row in df.iterrows():
-    print(f"{index} {row['price']}")
+  def clean_deal_column(df):
+    # remove "member price"
+    df["deal"] = df["deal"].str.replace("member price", "", regex=False).str.strip()
+
+    # remove "equal or lesser value" 
+    df["deal"] = df["deal"].str.replace("equal or lesser value", "", regex=False).str.strip()
+    
+    def extract_units(row):
+      
+      deal, units, price, unit_price = row["deal"], row["units"], row["price"], row["unit_price"]
+      if not deal:
+        return deal, units, unit_price
+
+      # get units
+      match = re.search(r"when\s*you\s*buy\s*(\d+)", deal)
+      if match:
+        units = match.group(1)
+        deal = deal.replace(match.group(0), "").strip()
+        
+      # get unit_price
+      match = re.search(r"buy\s*(\d+)\s*get\s*(\d+)\s*free", deal)
+      if match and price:
+        cost = int(match.group(1)) * float(price)
+        unit_price = float(cost) / int(units)
+        deal = deal.replace(match.group(0), "").strip()
+      
+      return deal, units, unit_price
+        
+    df["deal"], df["units"], df["unit_price"] = zip(*df.apply(extract_units, axis=1))
+    
+  clean_deal_column(df)
   
   return df
 
 if __name__ == "__main__":
-  file_path = "scraper/aria_labels.csv"
+  file_path = "scraper/old flyer.csv"
   cleaned_df = clean_data(file_path)
 
   # Save to a cleaned CSV

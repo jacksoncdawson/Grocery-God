@@ -1,4 +1,6 @@
 - parser.py
 - - Fix normalizing price feature
+- - - @ 136: what do each regex do? must figure out before intializing/populating [] for constraints
 
-- Edit previous trips option
+- logger.py
+- - Edit previous trips option
