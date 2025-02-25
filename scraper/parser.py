@@ -113,7 +113,6 @@ def clean_data(file_path):
   df = df[~df["price"].str.contains("off", na=False)]
   df = df[~df["deal"].str.contains("off", na=False)]
   
-  
   # Initialize empty columns for units, unit_price, and ounces
   df["units"] = 1
   df["unit_price"] = None
@@ -195,7 +194,7 @@ def clean_data(file_path):
   return df
 
 if __name__ == "__main__":
-  file_path = "scraper/old flyer.csv"
+  file_path = "scraper/weeklyad_2025-02-19.csv"
   cleaned_df = clean_data(file_path)
 
   # Save to a cleaned CSV

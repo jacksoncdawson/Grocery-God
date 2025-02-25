@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -6,6 +10,7 @@ import csv
 import re
 from datetime import datetime
 from selenium.common.exceptions import TimeoutException
+from db.database import upload_scrape
 
 # Initialize WebDriver 
 options = webdriver.ChromeOptions()
@@ -14,13 +19,16 @@ options.add_argument("--disable-gpu")
 options.add_argument("--window-size=1920,1080")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
-
 driver = webdriver.Chrome(options=options)
 
 # Open the Safeway Weekly Ad page
 driver.get("https://www.safeway.com/weeklyad/")
 
+
 # Get Date Information
+valid_from = "Unknown"
+valid_until = "Unknown"
+
 try:
   # Wait for the "Navigation Bar" iframe to be available and switch to it
   navigation_bar = WebDriverWait(driver, 30).until(
@@ -47,9 +55,6 @@ try:
     valid_from = datetime.strptime(valid_from_str, "%b %dth %Y").strftime("%Y-%m-%d")
     valid_until = datetime.strptime(valid_until_str, "%b %dth %Y").strftime("%Y-%m-%d")
 
-    print(f"Valid From: {valid_from}")
-    print(f"Valid Until: {valid_until}")
-
 except TimeoutException:
   print("Timeout while trying to get date information.")
   date_text = "Unknown"
@@ -57,7 +62,10 @@ except TimeoutException:
 finally:
   driver.switch_to.default_content()  # Return to the main content
 
+
 # Get Product information
+all_products = []
+
 try:
   # Wait for the "Main Panel" iframe and switch to it
   main_panel = WebDriverWait(driver, 30).until(
@@ -72,31 +80,39 @@ try:
 
   # Find all flyer images
   flyer_images = driver.find_elements(By.TAG_NAME, "sfml-flyer-image")
-    
-  all_aria_labels = []
 
   for flyer in flyer_images:
-    flyer_items = flyer.find_elements(By.TAG_NAME, "sfml-flyer-image-a")
-    
-    for item in flyer_items:
-      aria_label = item.get_attribute("aria-label")
-      if aria_label:
-        all_aria_labels.append(aria_label)
-
-    # Define the CSV file path
-    csv_file_path = "/Users/jackcdawson/Desktop/dev/Python Projects/Grocery God/scraper/aria_labels.csv"
-
-    # Write data to CSV
-    with open(csv_file_path, "w", newline="") as file:
-      writer = csv.writer(file)
-      writer.writerow([date_text])
-      for label in all_aria_labels:
-        writer.writerow([label])
-
-  print(f"Scraped {len(all_aria_labels)} product entries and saved to CSV.")
+    try:
+      flyer_items = flyer.find_elements(By.TAG_NAME, "sfml-flyer-image-a")
+      
+      for item in flyer_items:
+        product_info = item.get_attribute("aria-label")
+        if product_info:
+          all_products.append(product_info)
+    except Exception as e:
+      print(f"Error extracting product info: {e}")
 
 except TimeoutException:
   print("\nEXCEPTION: Timeout while trying to get product information.\n")
 
 finally:
   driver.quit()
+
+
+if __name__ == "__main__":
+  
+  # Generate file name based on date
+  filename = f"weeklyad_{valid_from}.csv"
+  
+  file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename) 
+
+  # Write data to CSV
+  with open(file_path, "w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow([f"{valid_from} - {valid_until}"])
+    for product in all_products:
+      writer.writerow([product])
+
+  print(f"Scraped {len(all_products)} product entries and saved to {filename}.")
+
+  response = upload_scrape(file_path)
