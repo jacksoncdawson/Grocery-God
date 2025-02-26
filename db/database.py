@@ -1,6 +1,7 @@
 import os
 from supabase import create_client
 from dotenv import load_dotenv
+import pandas as pd
 
 load_dotenv(override=True)
 
@@ -13,7 +14,7 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Fetch the latest trip from the database.
 def fetch_trip_data():
-  response = supabase.table("trips").select("*").order("id", desc=True).limit(1).execute()
+  response = supabase.table("trips").select("*").order("trip_id", desc=True).limit(1).execute()
   return response.data[0] if response.data else None
 
 # Fetch products for a given trip.
@@ -29,7 +30,7 @@ def insert_trip_data(store, trip_date, products):
   if not trip_response.data or len(trip_response.data) == 0:
     return None
   
-  trip_id = trip_response.data[0]["id"]
+  trip_id = trip_response.data[0]["trip_id"]
 
   # Update products with trip_id
   for product in products:
@@ -45,7 +46,7 @@ def insert_trip_data(store, trip_date, products):
 # Upload a scrape to Supabase Storage
 def upload_scrape(file_path, bucket_name="scrapes", folder_name="safeway_flyers"):
 
-  # Debugging: Confirm file exists
+  # Confirm file exists
   if not os.path.exists(file_path):
     print(f"ERROR: File {file_path} does not exist!")
     return False
@@ -75,3 +76,28 @@ def upload_scrape(file_path, bucket_name="scrapes", folder_name="safeway_flyers"
   except Exception as e:
     print(f"🔥 Exception occurred during upload: {e}")
     return False
+
+def upload_clean_data(clean_data, valid_from, valid_until):
+  
+  # Insert into flyers table
+  flyer_data = {
+    "store": "safeway",
+    "valid_from": valid_from,
+    "valid_until": valid_until
+  }
+  flyer_response = supabase.table("flyers").insert(flyer_data).execute()
+  
+  if not flyer_response.data or len(flyer_response.data) == 0:
+    return None
+  
+  flyer_id = flyer_response.data[0]["flyer_id"]
+  
+  # Prepare products data
+  products_data = clean_data.to_dict(orient="records")
+  for product in products_data:
+    product["flyer_id"] = flyer_id
+  
+  # Insert into products table
+  supabase.table("flyer_products").insert(products_data).execute()
+  
+  return flyer_id
