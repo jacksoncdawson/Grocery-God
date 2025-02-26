@@ -104,7 +104,7 @@ def load_latest_trip():
     
   if latest_trip:
     st.session_state.latest_trip = latest_trip
-    st.session_state.trip_id = latest_trip["id"]
+    st.session_state.trip_id = latest_trip["trip_id"]
   else:
     st.session_state.latest_trip = None
     st.session_state.trip_id = None
