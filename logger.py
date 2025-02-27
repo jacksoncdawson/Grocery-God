@@ -2,20 +2,18 @@
 Program Name: Logger 
 Description: Allows users to log purchased grocery products. The data is stored in a Supabase database for future reference and analysis.
 Author: Jack Dawson
-Date: 2/16/2025
+Date: 2/27/2025
 
 Modules:
-- os: For accessing environment variables.
 - streamlit: For creating the web interface.
-- supabase: For interacting with the Supabase database.
-- dotenv: For loading environment variables from a .env file.
 - datetime: For handling date and time operations.
+- db.database: For interacting with the Supabase database.
 
 Functions:
-- get_supabase_client: Initializes and returns a Supabase client using environment variables.
+- init_state: Initializes the session state variables.
 - set_page: Sets the current page in the Streamlit session state and triggers a rerun.
-- fetch_trip_data: Fetches the latest trip data and associated products from the Supabase database.
-- insert_trip_data: Validates and inserts trip and product data into the Supabase database.
+- handle_trip_submission: Validates and inserts trip and product data into the Supabase database.
+- load_latest_trip: Fetches the latest trip data and associated products from the Supabase database.
 - reset_trip_data: Resets the trip-related data in the Streamlit session state.
 
 Usage:

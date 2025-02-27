@@ -1,3 +1,31 @@
+"""
+Program Name: Grocery God Database Handler
+Description: Handles database operations for the Grocery God application, including fetching, inserting, and uploading data to Supabase.
+Author: Jack Dawson
+Date: 2/27/2025
+
+Modules:
+- os: For interacting with the operating system and environment variables.
+- supabase: For interacting with the Supabase database.
+- dotenv: For loading environment variables from a .env file.
+- pandas: For data manipulation and analysis.
+
+Functions:
+- fetch_trip_data: Fetches the latest trip data from the database.
+- fetch_trip_products: Fetches products for a given trip from the database.
+- insert_trip_data: Inserts trip and product data into the database.
+- upload_scrape: Uploads a scrape file to Supabase Storage.
+- upload_clean_data: Uploads cleaned data to the database, including flyer and product information.
+
+Usage:
+1. The script initializes a Supabase client using environment variables for the URL and key.
+2. The fetch_trip_data function retrieves the most recent trip data from the "trips" table.
+3. The fetch_trip_products function retrieves products associated with a specific trip from the "trip_products" table.
+4. The insert_trip_data function inserts new trip data and associated products into the database.
+5. The upload_scrape function uploads a specified file to a designated bucket and folder in Supabase Storage.
+6. The upload_clean_data function inserts cleaned flyer and product data into the "flyers" and "flyer_products" tables, respectively.
+"""
+
 import os
 from supabase import create_client
 from dotenv import load_dotenv

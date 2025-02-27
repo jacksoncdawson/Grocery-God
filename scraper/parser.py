@@ -1,3 +1,31 @@
+"""
+Program Name: Grocery God Parser
+Description: Parses and cleans raw grocery data from CSV files, sorts the data into products, deals, and prices, and uploads the cleaned data to a database.
+Author: Jack Dawson
+Date: 2/27/2025
+
+Modules:
+- pandas: For data manipulation and analysis.
+- numpy: For numerical operations.
+- re: For regular expression operations.
+- glob: For file pattern matching.
+- os: For interacting with the operating system.
+- sys: For system-specific parameters and functions.
+- db.database: For uploading cleaned data to the database.
+
+Functions:
+- sort_data: Sorts raw data into products, deals, and prices based on specific patterns.
+- clean_data: Cleans and processes the sorted data, preparing it for upload.
+- run_clean_data: Manages the overall process of reading raw data files, cleaning the data, and uploading it to the database.
+
+Usage:
+1. The script reads raw grocery data from CSV files located in the 'scraper' directory.
+2. The data is sorted into products, deals, and prices using the sort_data function.
+3. The clean_data function further processes the sorted data, ensuring it is in the correct format.
+4. The run_clean_data function handles the entire workflow, including reading files, cleaning data, and uploading it to the database.
+
+"""
+
 import pandas as pd
 import numpy as np
 import re
