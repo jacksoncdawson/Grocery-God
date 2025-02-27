@@ -1,6 +1,5 @@
 - parser.py
-- - Fix normalizing price feature
-- - - @ 136: what do each regex do? must figure out before intializing/populating [] for constraints
+- - update price for "when you buy" price column (unit price = per, price = sum price) (e.g. chloe pino grigio)
 
 - logger.py
 - - Edit previous trips option

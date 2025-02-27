@@ -1,16 +1,18 @@
 import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import csv
+import re
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-import csv
-import re
-from datetime import datetime
 from selenium.common.exceptions import TimeoutException
+from datetime import datetime
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from db.database import upload_scrape
+
 
 # Initialize WebDriver 
 options = webdriver.ChromeOptions()

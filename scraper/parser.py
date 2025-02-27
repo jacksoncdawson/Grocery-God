@@ -1,5 +1,11 @@
 import pandas as pd
+import numpy as np
 import re
+import glob
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from db.database import upload_clean_data
 
 def sort_data(raw_data):
   products, deals, prices = [], [], []
@@ -14,10 +20,7 @@ def sort_data(raw_data):
       product, price = row.split(", , ")
       products.append(product.strip())
       deals.append(None)
-      if price.strip() == "":
-        prices.append(None)
-      else:
-        prices.append(price.strip())
+      prices.append(price.strip())
         
     # delete "save $x" rows - too much fuss
     elif "save " in row:
@@ -29,7 +32,7 @@ def sort_data(raw_data):
       deal, price = rest.split(",", 1)
       products.append(product.strip())
       deals.append("buy " + deal.strip())
-      prices.append(price.strip())
+      prices.append(price.strip()) 
       
     elif ", free " in row:
       product, rest = row.split(", free", 1)
@@ -119,6 +122,10 @@ def clean_data(file_path):
   df["ounces"] = None
 
   def clean_price_column(df):
+    
+    # "" -> None prices
+    df["price"] = df["price"].apply(lambda x: None if x == "" else x)
+    
     # clean extra symbols and words
     df["price"] = df["price"].str.replace("member price", "", regex=False).str.strip()
     df["price"] = df["price"].str.replace("$", "", regex=False).str.strip()
@@ -133,27 +140,35 @@ def clean_data(file_path):
     df["price"] = df["price"].str.replace("lb", "", regex=False).str.strip()
     
     # catch constraints
-    def extract_constraints(price):
-        
-      # extract minimum purchase constraint
+    def extract_constraints(row):
+      
+      price = row["price"]
+      units = row["units"]
+      unit_price = row["unit_price"]
+
+      if price is None:
+        return price, unit_price, units  
+
       match = re.search(r"when\s*you\s*buy\s*(\d+)", price)
       if match:
         units = match.group(1)
         price = price.replace(match.group(0), "").strip()
-      else:
-        units = 1
-      
-      # extract price complexity
+
       match = re.search(r"(\d+)\s*(for|/)\s*(\d+\.\d+|\d+)", price)
       if match:
-        unit_price = round(float(match.group(3)) / float(match.group(1)), 2)
+        total_price = float(match.group(3))
+        count = float(match.group(1))
+        unit_price = round(total_price / count, 2)
         price = price.replace(match.group(0), match.group(3)).strip()
       else:
-        unit_price = float(price) if price else None
+        try:
+          unit_price = float(price)
+        except ValueError:
+          unit_price = None
 
       return price, unit_price, units
 
-    df["price"], df["unit_price"], df["units"] = zip(*df["price"].apply(extract_constraints))
+    df["price"], df["unit_price"], df["units"] = zip(*df.apply(extract_constraints, axis=1))
     
     return df
 
@@ -180,23 +195,46 @@ def clean_data(file_path):
         
       # get unit_price
       match = re.search(r"buy\s*(\d+)\s*get\s*(\d+)\s*free", deal)
-      if match and price:
-        cost = int(match.group(1)) * float(price)
-        unit_price = float(cost) / int(units)
-        deal = deal.replace(match.group(0), "").strip()
+      if match:
+        if price:
+          cost = int(match.group(1)) * float(price)
+          unit_price = float(cost) / int(units)
+        else:
+          unit_price = None
       
       return deal, units, unit_price
         
     df["deal"], df["units"], df["unit_price"] = zip(*df.apply(extract_units, axis=1))
-    
+  
   clean_deal_column(df)
+  
+  # Prepare for JSON formatting
+  df.replace({pd.NA: None, np.nan: None}, inplace=True)
   
   return df
 
-if __name__ == "__main__":
-  file_path = "scraper/weeklyad_2025-02-19.csv"
-  cleaned_df = clean_data(file_path)
 
-  # Save to a cleaned CSV
-  cleaned_df.to_csv("/Users/jackcdawson/Desktop/dev/Python Projects/Grocery God/scraper/cleaned_safeway_deals.csv", index=False)
-  print("Cleaned data saved to cleaned_safeway_deals.csv")
+if __name__ == "__main__":
+  
+  file_list = glob.glob("scraper/weeklyad_*.csv")
+  
+  if file_list:
+    file_path = file_list[0]
+    
+    # get date info
+    with open(file_path, 'r') as file:
+      first_line = file.readline().strip()
+      valid_from, valid_until = first_line.split(" - ")
+    
+    cleaned_df = clean_data(file_path)
+
+    flyer_id = upload_clean_data(cleaned_df, valid_from, valid_until)
+    if flyer_id:
+      print(f"Success! Flyer data for the week of {valid_from} is saved.")
+  
+    # # Clean up
+    # os.remove(file_path)
+    # print(f"Deleted the file: {file_path}")
+  
+  else:
+    print("Something went wrong... scraper.py didn't produce the right file, in the right place")
