@@ -1,5 +1,4 @@
 - parser.py
-- - update price for "when you buy" price column (unit price = per, price = sum price) (e.g. chloe pino grigio)
 
 - logger.py
 - - Edit previous trips option
