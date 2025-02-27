@@ -12,12 +12,16 @@ def sort_data(raw_data):
   
   # Initial Sorting (sort every relevant item by product, deal, price)
   for row in raw_data:
-      
+
     row = row.lower()
     
     # Check if ", , " is contained in the string -> no Safeway Deal
     if ", , " in row:
       product, price = row.split(", , ")
+
+      if "," in price:
+        continue
+
       products.append(product.strip())
       deals.append(None)
       prices.append(price.strip())
@@ -30,6 +34,10 @@ def sort_data(raw_data):
     elif ", buy " in row:
       product, rest = row.split(", buy", 1)
       deal, price = rest.split(",", 1)
+      
+      if "," in price:
+        continue
+      
       products.append(product.strip())
       deals.append("buy " + deal.strip())
       prices.append(price.strip()) 
@@ -37,6 +45,10 @@ def sort_data(raw_data):
     elif ", free " in row:
       product, rest = row.split(", free", 1)
       deal, price = rest.split(",", 1)
+      
+      if "," in price:
+        continue
+      
       products.append(product.strip())
       deals.append("free " + deal.strip())
       prices.append(price.strip())
@@ -44,6 +56,10 @@ def sort_data(raw_data):
     elif ", earn " in row:
       product, rest = row.split(", earn", 1)
       deal, price = rest.split(",", 1)
+      
+      if "," in price:
+        continue
+      
       products.append(product.strip())
       deals.append("earn " + deal.strip())
       prices.append(price.strip())
@@ -51,6 +67,10 @@ def sort_data(raw_data):
     elif ", up " in row:
       product, rest = row.split(", up", 1)
       deal, price = rest.split(",", 1)
+      
+      if "," in price:
+        continue
+      
       products.append(product.strip())
       deals.append("up " + deal.strip())
       prices.append(price.strip())
@@ -58,6 +78,10 @@ def sort_data(raw_data):
     elif ", get " in row:
       product, rest = row.split(", get", 1)
       deal, price = rest.split(",", 1)
+      
+      if "," in price:
+        continue
+      
       products.append(product.strip())
       deals.append("get " + deal.strip())
       prices.append(price.strip())
@@ -65,6 +89,10 @@ def sort_data(raw_data):
     elif re.search(r", \$\d+\.\d+ off ", row) or re.search(r", \$\d+ off ", row):
       product, rest = row.split(", $", 1)
       deal, price = rest.split(", ", 1)
+      
+      if "," in price:
+        continue
+      
       products.append(product.strip())
       deals.append("$" + deal.strip())
       prices.append(price.strip())
@@ -75,6 +103,10 @@ def sort_data(raw_data):
         percent_off = match.group(1) + "%"
         product, rest = row.split(", ", 1)
         deal, price = rest.split(", ", 1)
+        
+        if "," in price:
+          continue
+        
         products.append(product.strip())
         deals.append(f"{percent_off} off")
         prices.append(price.strip())
@@ -82,6 +114,10 @@ def sort_data(raw_data):
     elif ", celebrate with " in row:
       product, rest = row.split(", celebrate with ", 1)
       deal, price = rest.split(", ", 1)
+      
+      if "," in price:
+        continue
+      
       products.append(product.strip())
       deals.append(deal.strip())
       prices.append(price.strip())
@@ -89,12 +125,16 @@ def sort_data(raw_data):
     elif ", spend $" in row:
       product, rest = row.split(", spend $", 1)
       deal, price = rest.split(", ", 1)
+      
+      if "," in price:
+        continue
+      
       products.append(product.strip())
       deals.append("spend $" + deal.strip())
       prices.append(price.strip())
       
     else:
-      pass # we don't need these rows
+      continue # we don't need these rows
       
   return products, deals, prices
 
@@ -165,6 +205,9 @@ def clean_data(file_path):
           unit_price = float(price)
         except ValueError:
           unit_price = None
+          
+      # ensures total price is accurate
+      price = int(units) * float(price)
 
       return price, unit_price, units
 
@@ -213,9 +256,7 @@ def clean_data(file_path):
   
   return df
 
-
-if __name__ == "__main__":
-  
+def run_clean_data():
   file_list = glob.glob("scraper/weeklyad_*.csv")
   
   if file_list:
@@ -230,11 +271,16 @@ if __name__ == "__main__":
 
     flyer_id = upload_clean_data(cleaned_df, valid_from, valid_until)
     if flyer_id:
-      print(f"Success! Flyer data for the week of {valid_from} is saved.")
+      print(f"Success! Flyer data for the week of {valid_from} is saved.\n")
   
-    # # Clean up
-    # os.remove(file_path)
-    # print(f"Deleted the file: {file_path}")
+    # Clean up
+    os.remove(file_path)
+    print(f"Deleted the file: {file_path}\n")
   
   else:
     print("Something went wrong... scraper.py didn't produce the right file, in the right place")
+  
+  
+if __name__ == "__main__":
+
+  run_clean_data()

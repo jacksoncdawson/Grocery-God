@@ -64,17 +64,17 @@ def upload_scrape(file_path, bucket_name="scrapes", folder_name="safeway_flyers"
     )
 
     if response:
-      print(f"✅ File uploaded successfully to {destination_path}")
+      print(f"✅ File uploaded successfully to {destination_path}\n")
       return True
     elif isinstance(response, dict) and "error" in response:
-      print(f"ERROR: {response['error']}")
+      print(f"ERROR: {response['error']}\n")
       return False
     else:
-      print("❌ Unknown Error: Upload failed without details.")
+      print("❌ Unknown Error: Upload failed without details.\n")
       return False
 
   except Exception as e:
-    print(f"🔥 Exception occurred during upload: {e}")
+    print(f"🔥 Exception occurred during upload: {e}\n")
     return False
 
 def upload_clean_data(clean_data, valid_from, valid_until):
