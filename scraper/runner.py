@@ -1,5 +1,5 @@
 from scraper import write_safeway_scrape
-from parser import run_clean_data
+from cleaner import run_clean_data
 
 def main():
   
