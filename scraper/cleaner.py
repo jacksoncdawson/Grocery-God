@@ -1,12 +1,9 @@
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import pandas as pd
 import numpy as np
-import glob
 import re
-import os
-import sys
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from db.database import upload_clean_data
-from parser import sort_data
 
 
 def clean_price_column(df):
@@ -88,18 +85,8 @@ def extract_deal_constraints(row):
   return deal, units, unit_price
 
 
-def clean_data(file_path):
-  
-  raw_df = pd.read_csv(file_path, names=["Raw Data"])
-  products, deals, prices = sort_data(raw_df["Raw Data"])
-  
-  # Construct DataFrame
-  df = pd.DataFrame({
-    "product": products,
-    "deal": deals,
-    "price": prices,
-  })
-  
+def clean_data(df):
+
   # Drop rows with both 'deal' and 'price' as NaN
   df = df.dropna(subset=["deal", "price"], how="all")
   
@@ -113,39 +100,9 @@ def clean_data(file_path):
     df = clean_price_column(df)
     df = clean_deal_column(df)
   except Exception as e:
-    raise ValueError(f"Error cleaning data: {e}")
+    raise ValueError(f"❌ Error cleaning data: {e}")
+  
+  # Prepare for JSON formatting
+  df.replace({pd.NA: None, np.nan: None}, inplace=True)
 
   return df
-
-
-def run_clean_data():
-  file_list = glob.glob("scraper/weeklyad_*.csv")
-  
-  if file_list:
-    file_path = file_list[0]
-    
-    # get date info
-    with open(file_path, 'r') as file:
-      first_line = file.readline().strip()
-      valid_from, valid_until = first_line.split(" - ")
-    
-    cleaned_df = clean_data(file_path)
-    
-    print(cleaned_df)
-    
-    # if isinstance(cleaned_df, pd.DataFrame):
-    #   flyer_id = upload_clean_data(cleaned_df, valid_from, valid_until)
-    #   if flyer_id:
-    #     print(f"Success! Flyer data for the week of {valid_from} is saved.\n")
-    
-    # Clean up
-    # os.remove(file_path)
-    # print(f"Deleted the file: {file_path}\n")
-  
-  else:
-    print("❌ Something went wrong... scraper.py didn't produce the right file, in the right place")
-
-  
-if __name__ == "__main__":
-
-  pass

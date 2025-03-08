@@ -24,8 +24,8 @@ Usage:
 4. The script can be run directly to perform the scraping and data upload process.
 """
 
-import sys
-import os
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import csv
 import re
 
@@ -36,8 +36,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from datetime import datetime
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from db.database import upload_scrape
 
 def scrape_safeway():
 
@@ -129,7 +127,7 @@ def scrape_safeway():
 
   return all_products, valid_from, valid_until
 
-def write_safeway_scrape():
+def save_safeway_scrape():
   
   print("\nScraping safeway.com ...\n")
   all_products, valid_from, valid_until = scrape_safeway()
@@ -148,12 +146,9 @@ def write_safeway_scrape():
       for product in all_products:
         writer.writerow([product])
 
-    print(f"Scraped {len(all_products)} product entries and saved to {filename}.\n")
-
-    # TODO: this needs to be a separate module
-    upload_scrape(file_path)
+    print(f"✅ Scraped {len(all_products)} product entries and saved to '{filename}' successfully.\n")
   
 
 if __name__ == "__main__":
   
-  write_safeway_scrape()
+  save_safeway_scrape()

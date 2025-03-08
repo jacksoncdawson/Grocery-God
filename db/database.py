@@ -76,7 +76,7 @@ def upload_scrape(file_path, bucket_name="scrapes", folder_name="safeway_flyers"
 
   # Confirm file exists
   if not os.path.exists(file_path):
-    print(f"ERROR: File {file_path} does not exist!")
+    print(f"❌ ERROR: File {file_path} does not exist!")
     return False
 
   with open(file_path, "rb") as file:
@@ -95,14 +95,14 @@ def upload_scrape(file_path, bucket_name="scrapes", folder_name="safeway_flyers"
       print(f"✅ File uploaded successfully to {destination_path}\n")
       return True
     elif isinstance(response, dict) and "error" in response:
-      print(f"ERROR: {response['error']}\n")
+      print(f"❌ ERROR: {response['error']}\n")
       return False
     else:
       print("❌ Unknown Error: Upload failed without details.\n")
       return False
 
   except Exception as e:
-    print(f"🔥 Exception occurred during upload: {e}\n")
+    print(f"❌ Exception occurred during upload: {e}\n")
     return False
 
 def upload_clean_data(clean_data, valid_from, valid_until):
@@ -114,10 +114,10 @@ def upload_clean_data(clean_data, valid_from, valid_until):
     "valid_until": valid_until
   }
   flyer_response = supabase.table("flyers").insert(flyer_data).execute()
-  
+
   if not flyer_response.data or len(flyer_response.data) == 0:
     return None
-  
+
   flyer_id = flyer_response.data[0]["flyer_id"]
   
   # Prepare products data
@@ -126,6 +126,10 @@ def upload_clean_data(clean_data, valid_from, valid_until):
     product["flyer_id"] = flyer_id
   
   # Insert into products table
-  supabase.table("flyer_products").insert(products_data).execute()
-  
+  try:
+    supabase.table("flyer_products").insert(products_data).execute()
+  except:
+    supabase.table("flyers").delete().eq("flyer_id", flyer_id).execute()
+    return None
+
   return flyer_id
