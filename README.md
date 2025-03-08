@@ -1,5 +1,5 @@
 # Grocery God 
-## Last Updated: 2/27/2025
+## Last Updated: 3/7/2025
 
 ## Overview
 Grocery God is a comprehensive tool designed to streamline grocery shopping by collecting and analyzing data from various stores. The project features a web app for logging grocery purchases, a scraper for collecting weekly deals from Safeway, and a data cleaning process to ensure the data is ready for analysis. All data is stored in a PostgreSQL database using Supabase.
@@ -21,15 +21,22 @@ Grocery God is a comprehensive tool designed to streamline grocery shopping by c
 
 #### `scraper/scraper.py`
 - **scrape_safeway**: Scrapes Safeway's weekly ad page for product information and date range.
-- **write_safeway_scrape**: Writes the scraped data to a CSV file and uploads it to Supabase.
+- **save_safeway_scrape**: Manages the scraping process, writes the scraped data to a CSV file, and uploads the file to the database.
 
 #### `scraper/parser.py`
 - **sort_data**: Sorts raw data into products, deals, and prices.
-- **clean_data**: Cleans and organizes the raw data into a structured format.
-- **run_clean_data**: Runs the data cleaning process and uploads the cleaned data to Supabase.
+- **parse_row**: Parses a row of data to extract product, deal, and price information.
 
 #### `scraper/runner.py`
 - **main**: Runs the scraping and data cleaning processes sequentially.
+- **setup_df**: Sets up a DataFrame from the scraped data file.
+
+#### `scraper/cleaner.py`
+- **clean_data**: Cleans and organizes the raw data into a structured format.
+- **clean_price_column**: Cleans the price column in the DataFrame.
+- **clean_deal_column**: Cleans the deal column in the DataFrame.
+- **extract_price_constraints**: Extracts price constraints from the price column.
+- **extract_deal_constraints**: Extracts deal constraints from the deal column.
 
 #### `logger.py`
 - **init_state**: Initializes the session state for the web app.
@@ -50,5 +57,3 @@ Grocery God is a comprehensive tool designed to streamline grocery shopping by c
 - **`.gitignore`**: Specifies files and directories to be ignored by Git.
 - **`requirements.txt`**: Lists the dependencies required for the project.
 - **`TODO`**: Contains a list of tasks and future improvements for the project.
-
-

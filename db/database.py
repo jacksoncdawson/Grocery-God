@@ -105,6 +105,7 @@ def upload_scrape(file_path, bucket_name="scrapes", folder_name="safeway_flyers"
     print(f"❌ Exception occurred during upload: {e}\n")
     return False
 
+# Upload cleaned flyer data to the database
 def upload_clean_data(clean_data, valid_from, valid_until):
   
   # Insert into flyers table
