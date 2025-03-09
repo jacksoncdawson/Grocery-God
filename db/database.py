@@ -26,10 +26,9 @@ Usage:
 6. The upload_clean_data function inserts cleaned flyer and product data into the "flyers" and "flyer_products" tables, respectively.
 """
 
-import os
+import os, sys
 from supabase import create_client
 from dotenv import load_dotenv
-import pandas as pd
 
 load_dotenv(override=True)
 

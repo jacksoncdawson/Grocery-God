@@ -48,7 +48,7 @@ def main():
   # Upload all data to Supabase
   try:
     
-    upload_scrape(file_path)
+    scrape_response = upload_scrape(file_path)
     
     if isinstance(cleaned_df, pd.DataFrame):
       flyer_id = upload_clean_data(cleaned_df, valid_from, valid_until)

@@ -35,7 +35,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from datetime import datetime
-
+from custom_exceptions import ScraperError
 
 def scrape_safeway():
 
@@ -83,8 +83,7 @@ def scrape_safeway():
       valid_until = datetime.strptime(valid_until_str, "%b %dth %Y").strftime("%Y-%m-%d")
 
   except TimeoutException:
-    print("Timeout while trying to get date information.")
-    date_text = "Unknown"
+    raise ScraperError("Timeout while trying to get date information.")
 
   finally:
     driver.switch_to.default_content()  # Return to the main content
@@ -120,7 +119,7 @@ def scrape_safeway():
         print(f"Error extracting product info: {e}")
 
   except TimeoutException:
-    print("\nEXCEPTION: Timeout while trying to get product information.\n")
+    raise ScraperError("Timeout while trying to get product information.")
 
   finally:
     driver.quit()
@@ -129,7 +128,6 @@ def scrape_safeway():
 
 def save_safeway_scrape():
   
-  print("\nScraping safeway.com ...\n")
   all_products, valid_from, valid_until = scrape_safeway()
   
   if valid_from and valid_until and all_products:
@@ -147,8 +145,15 @@ def save_safeway_scrape():
         writer.writerow([product])
 
     print(f"✅ Scraped {len(all_products)} product entries and saved to '{filename}' successfully.\n")
+  else:
+    raise ScraperError("Failed to scrape Safeway data.")
   
 
 if __name__ == "__main__":
   
-  save_safeway_scrape()
+  try:
+    save_safeway_scrape()
+  except ScraperError as e:
+    print(f"❌ Error: {e}")
+  except Exception as e:
+    print(f"❌ Unexpected error: {e}")
