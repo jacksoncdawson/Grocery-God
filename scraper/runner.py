@@ -3,7 +3,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import glob
 import pandas as pd
 import logging
-import traceback
 
 from scraper import save_safeway_scrape
 from cleaner import clean_data
@@ -42,14 +41,12 @@ def main():
     try:
       save_safeway_scrape()
     except Exception as e:
-      logging.error(f"Error in save_safeway_scrape: {e}\n{traceback.format_exc()}")
-      return
+      raise RuntimeError(f"Error in save_safeway_scrape: {e}")
     
     # Get file_path
     file_list = glob.glob("scraper/weeklyad_*.csv")
     if not file_list:
-      logging.error("save_safeway_scrape() did not produce a file in the expected location.\n")
-      return
+      raise Exception("save_safeway_scrape() did not produce a file in the expected location.")
     file_path = file_list[0]
     
     # Get Date info
@@ -58,7 +55,7 @@ def main():
         first_line = file.readline().strip()
         valid_from, valid_until = first_line.split(" - ")
     except Exception as e:
-      raise Exception(f"Failed to read file {file_path}: {e}")
+      raise Exception(f"Failed to read file '{file_path}': {e}")
     
     df = setup_df(file_path)
     
@@ -73,7 +70,7 @@ def main():
     try:
       upload_scrape(file_path)
     except Exception as e:
-      raise Exception(f"Error uploading raw scrape: {e}")
+      raise Exception(f"Error in upload_scrape: {e}")
     
     # Insert flyer data to Supabase
     try:
@@ -82,13 +79,16 @@ def main():
         if flyer_id:
           logging.info(f"Flyer data for the week of {valid_from} saved in Supabase.")
     except Exception as e:
-      raise Exception(f"Error inserting flyer data: {e}")
+      raise Exception(f"Error in upload_clean_data: {e}")
         
   except Exception as e:
-    logging.error(f"Failed to finish program: {e}")
+    logging.error(f"Failure in runner.py: {e}")
     
   finally:
-    delete_csv(file_path)
+    try:
+      delete_csv(file_path)
+    except:
+      pass
 
 
 if __name__ == "__main__":

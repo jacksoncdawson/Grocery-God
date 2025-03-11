@@ -38,7 +38,7 @@ Grocery God is a comprehensive tool designed to streamline grocery shopping by c
 - **extract_price_constraints**: Extracts price constraints from the price column.
 - **extract_deal_constraints**: Extracts deal constraints from the deal column.
 
-#### `logger.py`
+#### `grocery_logger.py`
 - **init_state**: Initializes the session state for the web app.
 - **set_page**: Sets the current page in the Streamlit session state.
 - **handle_trip_submission**: Handles the submission of trip data and validates the input.

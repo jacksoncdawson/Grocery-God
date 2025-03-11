@@ -30,7 +30,6 @@ import csv
 import re
 import logging
 import time
-import traceback
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -93,6 +92,7 @@ def scrape_safeway(retries=3):
 
       except TimeoutException as e:
         logging.error(f"Timeout extracting date info (attempt {attempt + 1})")
+        attempt += 1
         continue
         
 
@@ -129,12 +129,13 @@ def scrape_safeway(retries=3):
 
       except TimeoutException as e:
         logging.error(f"Scraper timed out getting product information (attempt {attempt + 1}): {e}")
+        attempt += 1
         continue
 
       return all_products, valid_from, valid_until
 
     except Exception as e:
-      logging.error(f"Scraper attempt {attempt + 1} failed: {e}\n{traceback.format_exc()}")
+      logging.error(f"Scraper attempt {attempt + 1} failed: {e}")
       attempt += 1
       time.sleep(5)  # Wait before retrying
 

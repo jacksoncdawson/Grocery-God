@@ -97,10 +97,8 @@ def upload_scrape(file_path, bucket_name="scrapes", folder_name="safeway_flyers"
       raise RuntimeError(f"Bad Raw Scrape upload response: {response['error']}")
     else:
       raise RuntimeError("Unknown Error: Upload failed without details.")
-
   except Exception as e:
-    raise RuntimeError(f"Exception occurred during Raw Scrape upload: {e}")
-
+    raise RuntimeError(f"Error uploading file to Supabase: {e}")
 
 # Upload cleaned flyer data to the database
 def upload_clean_data(clean_data, valid_from, valid_until):
@@ -126,8 +124,9 @@ def upload_clean_data(clean_data, valid_from, valid_until):
   # Insert into products table
   try:
     supabase.table("flyer_products").insert(products_data).execute()
-  except:
+  except Exception as e:
     try:
       supabase.table("flyers").delete().eq("flyer_id", flyer_id).execute()
     except:
       pass
+    raise RuntimeError(f"Failed to insert flyer products into the database: {e}")

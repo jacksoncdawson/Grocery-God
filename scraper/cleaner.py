@@ -98,9 +98,13 @@ def clean_data(df):
   # Apply cleaning functions
   try:
     df = clean_price_column(df)
+  except Exception as e:
+    raise Exception(f"Error in clean_price_column: {e}")
+
+  try:
     df = clean_deal_column(df)
   except Exception as e:
-    raise Exception(f"Error in cleaning functions: {e}")
+    raise Exception(f"Error in clean_deal_column: {e}")
 
   # Prepare for JSON formatting
   df.replace({pd.NA: None, np.nan: None}, inplace=True)
