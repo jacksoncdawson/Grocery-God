@@ -27,6 +27,7 @@ Usage:
 """
 
 import os, sys
+import pandas as pd
 from supabase import create_client
 from dotenv import load_dotenv
 import logging
@@ -42,17 +43,17 @@ supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 """ Logger DB Functions """
 
 # Fetch the latest trip from the database.
-def fetch_trip_data():
+def fetch_trip_data() -> dict:
   response = supabase.table("trips").select("*").order("trip_id", desc=True).limit(1).execute()
   return response.data[0] if response.data else None
 
 # Fetch products for a given trip.
-def fetch_trip_products(trip_id):
+def fetch_trip_products(trip_id: int) -> list:
   response = supabase.table("trip_products").select("*").eq("trip_id", trip_id).execute()
   return response.data if response.data else []
 
 # Insert trip and product data
-def insert_trip_data(store, trip_date, products):
+def insert_trip_data(store: str, trip_date: str, products: list) -> int:
   trip_data = {"store": store, "trip_date": trip_date}
   trip_response = supabase.table("trips").insert(trip_data).execute()
   
@@ -73,7 +74,7 @@ def insert_trip_data(store, trip_date, products):
 """ Scraper DB Functions """
 
 # Upload a raw scrape to Supabase Storage
-def upload_scrape(file_path, bucket_name="scrapes", folder_name="safeway_flyers"):
+def upload_scrape(file_path: str, bucket_name: str = "scrapes", folder_name: str = "safeway_flyers") -> None:
 
   # Confirm file exists
   if not os.path.exists(file_path):
@@ -101,7 +102,7 @@ def upload_scrape(file_path, bucket_name="scrapes", folder_name="safeway_flyers"
     raise RuntimeError(f"Error uploading file to Supabase: {e}")
 
 # Upload cleaned flyer data to the database
-def upload_clean_data(clean_data, valid_from, valid_until):
+def upload_clean_data(clean_data: pd.DataFrame, valid_from: str, valid_until: str) -> None:
   
   # Insert into flyers table
   flyer_data = {
