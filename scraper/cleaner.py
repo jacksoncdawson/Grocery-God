@@ -6,7 +6,7 @@ import numpy as np
 import re
 
 
-def clean_price_column(df):
+def clean_price_column(df: pd.DataFrame) -> pd.DataFrame:
 
   # "" -> None prices
   df["price"] = df["price"].apply(lambda x: None if x == "" else x)
@@ -23,7 +23,7 @@ def clean_price_column(df):
   
   return df
 
-def extract_price_constraints(row):
+def extract_price_constraints(row: pd.Series) -> tuple[float, float, int]:
   
   price = row["price"]
   units = 1
@@ -53,7 +53,7 @@ def extract_price_constraints(row):
   return price, unit_price, units
 
 
-def clean_deal_column(df):
+def clean_deal_column(df: pd.DataFrame) -> pd.DataFrame:
 
   # Remove unwanted phrases
   remove_list = ["member price", "equal or lesser value"]
@@ -64,7 +64,7 @@ def clean_deal_column(df):
 
   return df
   
-def extract_deal_constraints(row):
+def extract_deal_constraints(row: pd.Series) -> tuple[str, int, float]:
     
   deal, units, price, unit_price = row["deal"], row["units"], row["price"], row["unit_price"]
   if not deal:
@@ -85,7 +85,7 @@ def extract_deal_constraints(row):
   return deal, units, unit_price
 
 
-def clean_data(df):
+def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 
   # Drop rows with both 'deal' and 'price' as NaN
   df = df.dropna(subset=["deal", "price"], how="all")

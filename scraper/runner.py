@@ -11,7 +11,7 @@ from db.database import upload_scrape, upload_clean_data
 
 logging.basicConfig(filename="runner_errors.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def setup_df(file_path):
+def setup_df(file_path: str) -> pd.DataFrame:
   
   # Read Flyer
   raw_df = pd.read_csv(file_path, names=["Raw Data"])
@@ -28,7 +28,7 @@ def setup_df(file_path):
   
   return df
 
-def delete_csv(file_path):
+def delete_csv(file_path: str) -> None:
   try:
     os.remove(file_path)
     logging.info(f"Deleted the local file: {file_path}\n")

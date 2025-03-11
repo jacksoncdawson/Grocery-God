@@ -40,7 +40,7 @@ from datetime import datetime
 
 logging.basicConfig(filename="scraper_errors.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
-def scrape_safeway(retries=3):
+def scrape_safeway(retries: int = 3) -> tuple[list[str], str, str]:
   attempt = 0
   while attempt < retries:
     try:
@@ -56,7 +56,6 @@ def scrape_safeway(retries=3):
       # Open the Safeway Weekly Ad page
       driver.get("https://www.safeway.com/weeklyad/")
       time.sleep(3)
-
 
       # Get Date Information --->
       valid_from = None
@@ -145,7 +144,7 @@ def scrape_safeway(retries=3):
       except:
         pass # driver already quit
 
-def save_safeway_scrape():
+def save_safeway_scrape() -> None:
   
   # Scrape Safeway
   try:

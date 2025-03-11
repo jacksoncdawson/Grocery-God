@@ -1,6 +1,7 @@
 import re
+import pandas as pd
 
-def parse_row(row, keyword):
+def parse_row(row: str, keyword: str) -> list[str, str, float]:
   product, rest = row.split(keyword, 1)
   deal, price = rest.split(",", 1)
   
@@ -13,7 +14,7 @@ def parse_row(row, keyword):
   
   return product, deal, price
 
-def sort_data(raw_data):
+def sort_data(raw_data: pd.Series) -> tuple[list[str], list[str], list[str]]:
   products, deals, prices = [], [], []
   
   keywords = [", buy ", ", free ", ", earn ", ", up ", ", get ", ", celebrate with ", ", spend $"]
