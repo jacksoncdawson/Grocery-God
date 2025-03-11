@@ -4,27 +4,24 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pandas as pd
 import numpy as np
 import re
-from custom_exceptions import CleanerError
 
 
 def clean_price_column(df):
-  try:
-    # "" -> None prices
-    df["price"] = df["price"].apply(lambda x: None if x == "" else x)
-    
-    # Remove unwanted words/symbols
-    remove_list = ["member price", "$", ",", "or more", "starting at", "ea", "ea."]
-    for item in remove_list:
-      df["price"] = df["price"].str.replace(item, "", regex=False).str.strip()
-    
-    df.loc[df["price"].str.contains("lb", na=False), "ounces"] = 16
-    df["price"] = df["price"].str.replace("lb", "", regex=False).str.strip()
-    
-    df["price"], df["unit_price"], df["units"] = zip(*df.apply(extract_price_constraints, axis=1))
-    
-    return df
-  except Exception as e:
-    raise CleanerError(f"Error in clean_price_column: {e}")
+
+  # "" -> None prices
+  df["price"] = df["price"].apply(lambda x: None if x == "" else x)
+  
+  # Remove unwanted words/symbols
+  remove_list = ["member price", "$", ",", "or more", "starting at", "ea", "ea."]
+  for item in remove_list:
+    df["price"] = df["price"].str.replace(item, "", regex=False).str.strip()
+  
+  df.loc[df["price"].str.contains("lb", na=False), "ounces"] = 16
+  df["price"] = df["price"].str.replace("lb", "", regex=False).str.strip()
+  
+  df["price"], df["unit_price"], df["units"] = zip(*df.apply(extract_price_constraints, axis=1))
+  
+  return df
 
 def extract_price_constraints(row):
   
@@ -57,17 +54,15 @@ def extract_price_constraints(row):
 
 
 def clean_deal_column(df):
-  try:
-    # Remove unwanted phrases
-    remove_list = ["member price", "equal or lesser value"]
-    for item in remove_list:
-      df["deal"] = df["deal"].str.replace(item, "", regex=False).str.strip()
-        
-    df["deal"], df["units"], df["unit_price"] = zip(*df.apply(extract_deal_constraints, axis=1))
 
-    return df
-  except Exception as e:
-    raise CleanerError(f"Error in clean_deal_column: {e}")
+  # Remove unwanted phrases
+  remove_list = ["member price", "equal or lesser value"]
+  for item in remove_list:
+    df["deal"] = df["deal"].str.replace(item, "", regex=False).str.strip()
+      
+  df["deal"], df["units"], df["unit_price"] = zip(*df.apply(extract_deal_constraints, axis=1))
+
+  return df
   
 def extract_deal_constraints(row):
     
@@ -91,22 +86,23 @@ def extract_deal_constraints(row):
 
 
 def clean_data(df):
+
+  # Drop rows with both 'deal' and 'price' as NaN
+  df = df.dropna(subset=["deal", "price"], how="all")
+
+  # Initialize columns
+  df["units"] = 1
+  df["unit_price"] = None
+  df["ounces"] = None
+
+  # Apply cleaning functions
   try:
-    # Drop rows with both 'deal' and 'price' as NaN
-    df = df.dropna(subset=["deal", "price"], how="all")
-
-    # Initialize columns
-    df["units"] = 1
-    df["unit_price"] = None
-    df["ounces"] = None
-
-    # Apply cleaning functions
     df = clean_price_column(df)
     df = clean_deal_column(df)
-
-    # Prepare for JSON formatting
-    df.replace({pd.NA: None, np.nan: None}, inplace=True)
-
-    return df
   except Exception as e:
-    raise CleanerError(f"Error in clean_data: {e}")
+    raise Exception(f"Error in cleaning functions: {e}")
+
+  # Prepare for JSON formatting
+  df.replace({pd.NA: None, np.nan: None}, inplace=True)
+
+  return df

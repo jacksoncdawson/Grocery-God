@@ -29,6 +29,8 @@ Usage:
 import os, sys
 from supabase import create_client
 from dotenv import load_dotenv
+import logging
+logging.basicConfig(filename="database_errors.log",level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 load_dotenv(override=True)
 
@@ -70,13 +72,12 @@ def insert_trip_data(store, trip_date, products):
 
 """ Scraper DB Functions """
 
-# Upload a scrape to Supabase Storage
+# Upload a raw scrape to Supabase Storage
 def upload_scrape(file_path, bucket_name="scrapes", folder_name="safeway_flyers"):
 
   # Confirm file exists
   if not os.path.exists(file_path):
-    print(f"❌ ERROR: File {file_path} does not exist!")
-    return False
+    raise FileNotFoundError(f"File {file_path} does not exist.")
 
   with open(file_path, "rb") as file:
     file_content = file.read()
@@ -91,18 +92,15 @@ def upload_scrape(file_path, bucket_name="scrapes", folder_name="safeway_flyers"
     )
 
     if response:
-      print(f"✅ File uploaded successfully to {destination_path}\n")
-      return True
+      logging.info(f"Raw Scrape uploaded successfully to {destination_path}")
     elif isinstance(response, dict) and "error" in response:
-      print(f"❌ ERROR: {response['error']}\n")
-      return False
+      raise RuntimeError(f"Bad Raw Scrape upload response: {response['error']}")
     else:
-      print("❌ Unknown Error: Upload failed without details.\n")
-      return False
+      raise RuntimeError("Unknown Error: Upload failed without details.")
 
   except Exception as e:
-    print(f"❌ Exception occurred during upload: {e}\n")
-    return False
+    raise RuntimeError(f"Exception occurred during Raw Scrape upload: {e}")
+
 
 # Upload cleaned flyer data to the database
 def upload_clean_data(clean_data, valid_from, valid_until):
@@ -113,10 +111,10 @@ def upload_clean_data(clean_data, valid_from, valid_until):
     "valid_from": valid_from,
     "valid_until": valid_until
   }
+  
   flyer_response = supabase.table("flyers").insert(flyer_data).execute()
-
   if not flyer_response.data or len(flyer_response.data) == 0:
-    return None
+    raise RuntimeError("Failed to insert flyer data into the database.")
 
   flyer_id = flyer_response.data[0]["flyer_id"]
   
@@ -129,7 +127,7 @@ def upload_clean_data(clean_data, valid_from, valid_until):
   try:
     supabase.table("flyer_products").insert(products_data).execute()
   except:
-    supabase.table("flyers").delete().eq("flyer_id", flyer_id).execute()
-    return None
-
-  return flyer_id
+    try:
+      supabase.table("flyers").delete().eq("flyer_id", flyer_id).execute()
+    except:
+      pass
