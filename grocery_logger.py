@@ -1,8 +1,8 @@
 """
-Program Name: Logger 
+Program Name: Grocery Logger
 Description: Allows users to log purchased grocery products. The data is stored in a Supabase database for future reference and analysis.
 Author: Jack Dawson
-Date: 2/27/2025
+Date: 3/12/2025
 
 Modules:
 - streamlit: For creating the web interface.

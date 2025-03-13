@@ -1,9 +1,0 @@
-2025-03-10 17:40:30,549 - ERROR - Failed to finish program: Error uploading raw scrape: Exception occurred during Raw Scrape upload: {'statusCode': 409, 'error': Duplicate, 'message': The resource already exists}
-2025-03-10 19:56:32,389 - ERROR - Failure in runner.py: Error in upload_scrape {'statusCode': 409, 'error': Duplicate, 'message': The resource already exists}
-2025-03-10 19:58:09,761 - ERROR - save_safeway_scrape() did not produce a file in the expected location.
-
-2025-03-10 19:59:11,941 - ERROR - save_safeway_scrape() did not produce a file in the expected location.
-
-2025-03-10 20:00:08,209 - ERROR - save_safeway_scrape() did not produce a file in the expected location.
-
-2025-03-10 20:19:57,349 - ERROR - Failure in runner.py: Failed to read file scraper/weeklyad_2025-03-05.csv: [Errno 2] No such file or directory: 'file_path'

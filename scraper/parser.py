@@ -1,3 +1,21 @@
+"""
+Program Name: Grocery God Parser
+Description: This script cleans and processes price and deal data from a grocery dataset.
+Author: Jack Dawson
+Date: 3/12/2025
+
+Modules:
+- re: Provides regular expression matching operations.
+- pandas as pd: A powerful data analysis and manipulation library for Python.
+
+Functions:
+- parse_row(row: str, keyword: str) -> list[str, str, float]: Parses a row of data to extract product, deal, and price information based on a keyword.
+- sort_data(raw_data: pd.Series) -> tuple[list[str], list[str], list[str]]: Sorts raw data into lists of products, deals, and prices, filtering out unwanted rows.
+
+Usage:
+- Import the script and call the `sort_data` function with a pandas Series containing raw grocery data.
+"""
+
 import re
 import pandas as pd
 

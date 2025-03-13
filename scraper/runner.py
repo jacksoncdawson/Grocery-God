@@ -1,3 +1,25 @@
+"""
+Program Name: Grocery God Scraper Runner
+Description: This script cleans and processes price and deal data from a grocery dataset.
+Author: Jack Dawson
+Date: 3/12/2025
+
+Modules:
+- sys: Provides access to some variables used or maintained by the interpreter and to functions that interact strongly with the interpreter.
+- os: Provides a way of using operating system dependent functionality like reading or writing to the file system.
+- glob: Finds all the pathnames matching a specified pattern according to the rules used by the Unix shell.
+- pandas as pd: A powerful data analysis and manipulation library for Python.
+- logging: Provides a flexible framework for emitting log messages from Python programs.
+
+Functions:
+- setup_df(file_path: str) -> pd.DataFrame: Reads a CSV file, sorts the data, and constructs a DataFrame.
+- delete_csv(file_path: str) -> None: Deletes a specified CSV file from the local file system.
+- main() -> None: The main function that orchestrates the scraping, cleaning, and uploading of grocery data.
+
+Usage:
+- Run the script directly to execute the main function, which will scrape data, process it, and upload it to a database.
+"""
+
 import sys, os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import glob
@@ -34,6 +56,7 @@ def delete_csv(file_path: str) -> None:
     logging.info(f"Deleted the local file: {file_path}\n")
   except Exception as e:
     logging.warning(f"Failed to delete file {file_path}: {e}")
+
 
 def main():
   try:
@@ -85,10 +108,7 @@ def main():
     logging.error(f"Failure in runner.py: {e}")
     
   finally:
-    try:
-      delete_csv(file_path)
-    except:
-      pass
+    delete_csv(file_path)
 
 
 if __name__ == "__main__":

@@ -1,3 +1,27 @@
+"""
+Program Name: Grocery God Data Cleaner
+Description: This script cleans and processes price and deal data from a grocery dataset.
+Author: Jack Dawson
+Date: 3/12/2025
+
+Modules:
+- sys: Provides access to some variables used or maintained by the interpreter.
+- os: Provides a way of using operating system dependent functionality.
+- pandas as pd: A powerful data analysis and manipulation library for Python.
+- numpy as np: A fundamental package for scientific computing with Python.
+- re: Provides regular expression matching operations.
+
+Functions:
+- clean_price_column(df: pd.DataFrame) -> pd.DataFrame: Cleans the 'price' column in the DataFrame.
+- extract_price_constraints(row: pd.Series) -> tuple[float, float, int]: Extracts price constraints from a row.
+- clean_deal_column(df: pd.DataFrame) -> pd.DataFrame: Cleans the 'deal' column in the DataFrame.
+- extract_deal_constraints(row: pd.Series) -> tuple[str, int, float]: Extracts deal constraints from a row.
+- clean_data(df: pd.DataFrame) -> pd.DataFrame: Cleans the entire DataFrame by applying the cleaning functions.
+
+Usage:
+- Import the script and call the `clean_data` function with a pandas DataFrame containing grocery data.
+"""
+
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 

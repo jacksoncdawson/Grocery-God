@@ -1,27 +1,28 @@
 """
 Program Name: Grocery God Safeway Scraper
-Description: Scrapes weekly ad data from Safeway's website, extracts product information and date range, and saves the data to a CSV file. The data is then uploaded to a database.
+Description: Scrapes weekly ad data from Safeway's website and saves the data to a CSV file.
 Author: Jack Dawson
-Date: 2/27/2025
+Date: 3/12/2025
 
 Modules:
 - sys: For system-specific parameters and functions.
 - os: For interacting with the operating system.
 - csv: For reading and writing CSV files.
 - re: For regular expression operations.
+- logging: For logging error messages.
+- time: For adding delays.
 - selenium: For web scraping and browser automation.
 - datetime: For manipulating dates and times.
-- db.database: For uploading scraped data to the database.
 
 Functions:
 - scrape_safeway: Scrapes the Safeway weekly ad page, extracts product information and date range, and returns the data.
-- write_safeway_scrape: Manages the scraping process, writes the scraped data to a CSV file, and uploads the file to the database.
+- save_safeway_scrape: Manages the scraping process and writes the scraped data to a CSV file.
 
 Usage:
 1. The script initializes a headless Chrome WebDriver to scrape the Safeway weekly ad page.
 2. The scrape_safeway function extracts the date range and product information from the page.
-3. The write_safeway_scrape function writes the extracted data to a CSV file and uploads it to the database.
-4. The script can be run directly to perform the scraping and data upload process.
+3. The save_safeway_scrape function writes the extracted data to a CSV file.
+4. The script can be run directly to perform the scraping and data saving process.
 """
 
 import sys, os
