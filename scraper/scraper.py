@@ -139,29 +139,19 @@ def scrape_safeway(retries: int = 3) -> tuple[list[str], str, str]:
       time.sleep(5)  # Wait before retrying
 
     finally:
-      try:
-        driver.quit()
-      except:
-        pass # driver already quit
+      driver.quit()
 
 def scrape_to_csv(all_products: list[str], valid_from: str, valid_until: str) -> None:
 
-  try:
-    filename = f"weeklyad_{valid_from}.csv"
-    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
-    
-    with open(file_path, "w", newline="") as file:
-      writer = csv.writer(file)
-      writer.writerow([f"{valid_from} - {valid_until}"])
-      
-      for product in all_products:
-        writer.writerow([product])
-      
-  except IOError as e:
-    raise IOError(f"Error writing to CSV file '{filename}': {e}")
+  filename = f"weeklyad_{valid_from}.csv"
+  file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
   
-  except Exception as e:
-    raise RuntimeError(f"Unexpected error in scrape_to_csv: {e}")
+  with open(file_path, "w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow([f"{valid_from} - {valid_until}"])
+    
+    for product in all_products:
+      writer.writerow([product])
     
 
 if __name__ == "__main__":

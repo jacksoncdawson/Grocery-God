@@ -51,38 +51,20 @@ def setup_df(file_path: str) -> pd.DataFrame:
   
   return df
 
-def delete_csv(file_path: str) -> None:
-  try:
-    os.remove(file_path)
-    logging.info(f"Deleted the local file: {file_path}\n")
-  except Exception as e:
-    logging.warning(f"Failed to delete file {file_path}: {e}")
-
-
 def main():
   try:
     
     # Scrape Safeway
-    try:
-      all_products, valid_from, valid_until = scrape_safeway()
+    all_products, valid_from, valid_until = scrape_safeway()
       
-      if not all_products:
-        raise ValueError("Scraping completed but no products were found.")
-        
-      if not valid_from or not valid_until:
-        raise ValueError("Scraping completed but date range is missing.")
+    if not all_products:
+      raise ValueError("Scraping completed but no products were found.")
+      
+    if not valid_from or not valid_until:
+      raise ValueError("Scraping completed but date range is missing.")
 
-    except TimeoutException as e:
-      raise TimeoutException(f"Safeway scraping timed out: {e}")
-
-    except Exception as e:
-      raise RuntimeError(f"Error in scrape_safeway: {e}")
-    
     # Save scrape to CSV
-    try:
-      scrape_to_csv(all_products, valid_from, valid_until)
-    except Exception as e:
-      raise RuntimeError(f"Error in scrape_to_csv: {e}")
+    scrape_to_csv(all_products, valid_from, valid_until)
     
     
     # Get file_path
@@ -93,44 +75,33 @@ def main():
     
     
     # Get Dates
-    try:
-      with open(file_path, 'r') as file:
-        first_line = file.readline().strip()
-        valid_from, valid_until = first_line.split(" - ")
-    except Exception as e:
-      raise Exception(f"Failed to read file '{file_path}': {e}")
-    
+    with open(file_path, 'r') as file:
+      first_line = file.readline().strip()
+      valid_from, valid_until = first_line.split(" - ")
+
     
     df = setup_df(file_path)
     
-    # Clean Data
-    try:
-      cleaned_df = clean_data(df)
-    except Exception as e:
-      raise Exception(f"Error in clean_data: {e}")
+    cleaned_df = clean_data(df)
     
     
     # Upload raw scrape to Supabase
-    try:
-      upload_scrape(file_path)
-    except Exception as e:
-      raise Exception(f"Error in upload_scrape: {e}")
+    upload_scrape(file_path)
     
     # Insert flyer data to Supabase
-    try:
-      if isinstance(cleaned_df, pd.DataFrame):
-        flyer_id = upload_clean_data(cleaned_df, valid_from, valid_until)
-        if flyer_id:
-          logging.info(f"Flyer data for the week of {valid_from} saved in Supabase.")
-    except Exception as e:
-      raise Exception(f"Error in upload_clean_data: {e}")
+    if isinstance(cleaned_df, pd.DataFrame):
+      flyer_id = upload_clean_data(cleaned_df, valid_from, valid_until)
+      if flyer_id:
+        logging.info(f"Flyer data for the week of {valid_from} saved in Supabase.")
+    
+    # Report Status
+    logging.info(f"Success: Scraped {len(cleaned_df["product"])} of {len(all_products)} total entries.")
         
   except Exception as e:
     logging.error(f"Failure in runner.py: {e}")
     
   finally:
-    # delete_csv(file_path)
-    pass
+    os.remove(file_path)
 
 
 if __name__ == "__main__":

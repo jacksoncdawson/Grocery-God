@@ -47,6 +47,16 @@ def clean_price_column(df: pd.DataFrame) -> pd.DataFrame:
   
   return df
 
+# def parseValues(values: list[list[str]], parsers: List[Callable[Any, Any]]):
+#   output = []
+#   for val in values:
+#     for parser in parsers:
+#       maybeParsedVals = parser(val[2])
+#       if maybeParsedVals:
+#         output.append(maybeParsedVals)
+#         break
+#   return output
+
 def extract_price_constraints(row: pd.Series) -> tuple[float, float, int]:
   
   price = row["price"]
@@ -117,15 +127,8 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
   df["ounces"] = None
 
   # Apply cleaning functions
-  try:
-    df = clean_price_column(df)
-  except Exception as e:
-    raise Exception(f"Error in clean_price_column: {e}")
-
-  try:
-    df = clean_deal_column(df)
-  except Exception as e:
-    raise Exception(f"Error in clean_deal_column: {e}")
+  df = clean_price_column(df)
+  df = clean_deal_column(df)
 
   # Prepare for JSON formatting
   df.replace({pd.NA: None, np.nan: None}, inplace=True)

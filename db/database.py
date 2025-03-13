@@ -111,7 +111,6 @@ def upload_scrape(file_path: str, bucket_name: str = "scrapes", folder_name: str
     RuntimeError: If there is an error during the upload process or if the upload response indicates a failure.
   """
   
-
   # Confirm file exists
   if not os.path.exists(file_path):
     raise FileNotFoundError(f"File {file_path} does not exist.")
@@ -135,6 +134,7 @@ def upload_scrape(file_path: str, bucket_name: str = "scrapes", folder_name: str
     else:
       raise RuntimeError("Unknown Error: Upload failed without details.")
   except Exception as e:
+    supabase.storage.from_(bucket_name).remove([destination_path])
     raise RuntimeError(f"Error uploading file to Supabase: {e}")
 
 # Upload cleaned flyer data to the database
@@ -175,8 +175,5 @@ def upload_clean_data(clean_data: pd.DataFrame, valid_from: str, valid_until: st
   try:
     supabase.table("flyer_products").insert(products_data).execute()
   except Exception as e:
-    try:
-      supabase.table("flyers").delete().eq("flyer_id", flyer_id).execute()
-    except:
-      pass
+    supabase.table("flyers").delete().eq("flyer_id", flyer_id).execute()
     raise RuntimeError(f"Failed to insert flyer products into the database: {e}")
