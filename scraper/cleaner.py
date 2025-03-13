@@ -111,9 +111,6 @@ def extract_deal_constraints(row: pd.Series) -> tuple[str, int, float]:
 
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
 
-  # Drop rows with both 'deal' and 'price' as NaN
-  df = df.dropna(subset=["deal", "price"], how="all")
-
   # Initialize columns
   df["units"] = 1
   df["unit_price"] = None

@@ -33,7 +33,6 @@ import pandas as pd
 from supabase import create_client
 from dotenv import load_dotenv
 import logging
-logging.basicConfig(filename="database_errors.log",level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 load_dotenv(override=True)
 

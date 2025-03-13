@@ -39,7 +39,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from datetime import datetime
 
-logging.basicConfig(filename="scraper_errors.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def scrape_safeway(retries: int = 3) -> tuple[list[str], str, str]:
   attempt = 0
@@ -145,26 +144,8 @@ def scrape_safeway(retries: int = 3) -> tuple[list[str], str, str]:
       except:
         pass # driver already quit
 
-def save_safeway_scrape() -> None:
-  
-  # Scrape Safeway
-  try:
-    all_products, valid_from, valid_until = scrape_safeway()
-    
-    if not all_products:
-      raise ValueError("Scraping completed but no products were found.")
-      
-    if not valid_from or not valid_until:
-      raise ValueError("Scraping completed but date range is missing.")
+def scrape_to_csv(all_products: list[str], valid_from: str, valid_until: str) -> None:
 
-  except TimeoutException as e:
-    raise TimeoutException(f"Safeway scraping timed out: {e}")
-
-  except Exception as e:
-    raise RuntimeError(f"Error in scrape_safeway: {e}")
-  
-
-  # Write scrape to CSV file
   try:
     filename = f"weeklyad_{valid_from}.csv"
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
@@ -180,9 +161,9 @@ def save_safeway_scrape() -> None:
     raise IOError(f"Error writing to CSV file '{filename}': {e}")
   
   except Exception as e:
-    raise RuntimeError(f"Unexpected error in save_safeway_scrape: {e}")
+    raise RuntimeError(f"Unexpected error in scrape_to_csv: {e}")
     
 
 if __name__ == "__main__":
 
-  save_safeway_scrape()
+  pass

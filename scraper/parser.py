@@ -38,9 +38,9 @@ def sort_data(raw_data: pd.Series) -> tuple[list[str], list[str], list[str]]:
   keywords = [", buy ", ", free ", ", earn ", ", up ", ", get ", ", celebrate with ", ", spend $"]
   
   for row in raw_data:
-    row = row.lower()
+    row = str(row).lower()
   
-    # Discard discount rows
+    # Discard unwanted rows
     if "save " in row:
       continue
     
@@ -49,7 +49,10 @@ def sort_data(raw_data: pd.Series) -> tuple[list[str], list[str], list[str]]:
       
     if re.search(r", \d+\% off", row):
       continue
-  
+    
+    if row.endswith(", , "):
+      continue
+
     # Rows we want
     if ", , " in row:
       product, price = row.split(", , ")

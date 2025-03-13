@@ -26,12 +26,13 @@ import glob
 import pandas as pd
 import logging
 
-from scraper import save_safeway_scrape
+from scraper import scrape_safeway, scrape_to_csv
 from cleaner import clean_data
 from parser import sort_data
 from db.database import upload_scrape, upload_clean_data
+from selenium.common.exceptions import TimeoutException
 
-logging.basicConfig(filename="runner_errors.log", level=logging.ERROR, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(filename="scraper_errors.log", level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 def setup_df(file_path: str) -> pd.DataFrame:
   
@@ -60,25 +61,45 @@ def delete_csv(file_path: str) -> None:
 
 def main():
   try:
-    # Scrape Safeway & Save in CSV file
+    
+    # Scrape Safeway
     try:
-      save_safeway_scrape()
+      all_products, valid_from, valid_until = scrape_safeway()
+      
+      if not all_products:
+        raise ValueError("Scraping completed but no products were found.")
+        
+      if not valid_from or not valid_until:
+        raise ValueError("Scraping completed but date range is missing.")
+
+    except TimeoutException as e:
+      raise TimeoutException(f"Safeway scraping timed out: {e}")
+
     except Exception as e:
-      raise RuntimeError(f"Error in save_safeway_scrape: {e}")
+      raise RuntimeError(f"Error in scrape_safeway: {e}")
+    
+    # Save scrape to CSV
+    try:
+      scrape_to_csv(all_products, valid_from, valid_until)
+    except Exception as e:
+      raise RuntimeError(f"Error in scrape_to_csv: {e}")
+    
     
     # Get file_path
     file_list = glob.glob("scraper/weeklyad_*.csv")
     if not file_list:
-      raise Exception("save_safeway_scrape() did not produce a file in the expected location.")
+      raise Exception("scrape_to_csv() did not produce a file in the expected location.")
     file_path = file_list[0]
     
-    # Get Date info
+    
+    # Get Dates
     try:
       with open(file_path, 'r') as file:
         first_line = file.readline().strip()
         valid_from, valid_until = first_line.split(" - ")
     except Exception as e:
       raise Exception(f"Failed to read file '{file_path}': {e}")
+    
     
     df = setup_df(file_path)
     
@@ -108,7 +129,8 @@ def main():
     logging.error(f"Failure in runner.py: {e}")
     
   finally:
-    delete_csv(file_path)
+    # delete_csv(file_path)
+    pass
 
 
 if __name__ == "__main__":
