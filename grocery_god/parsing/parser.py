@@ -21,6 +21,24 @@ Usage:
 import re
 import pandas as pd
 
+def setup_df(file_path: str) -> pd.DataFrame:
+
+    # Read Flyer
+    raw_df = pd.read_csv(file_path, names=["Raw Data"])
+
+    # Sort Flyer
+    products, deals, prices = sort_data(raw_df["Raw Data"])
+
+    # Construct DataFrame
+    df = pd.DataFrame(
+        {
+            "product": products,
+            "deal": deals,
+            "price": prices,
+        }
+    )
+
+    return df
 
 def parse_row(row: str, keyword: str) -> list[str, str, float]:
     product, rest = row.split(keyword, 1)
