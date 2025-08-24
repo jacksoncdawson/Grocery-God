@@ -1,167 +1,146 @@
-"""
-Program Name: Grocery God Safeway Scraper
-Description: Scrapes weekly ad data from Safeway's website and saves the data to a CSV file.
-Author: Jack Dawson
-Date: 3/12/2025
-
-Modules:
-- sys: For system-specific parameters and functions.
-- os: For interacting with the operating system.
-- csv: For reading and writing CSV files.
-- re: For regular expression operations.
-- logging: For logging error messages.
-- time: For adding delays.
-- selenium: For web scraping and browser automation.
-- datetime: For manipulating dates and times.
-
-Functions:
-- scrape_safeway: Scrapes the Safeway weekly ad page, extracts product information and date range, and returns the data.
-- save_safeway_scrape: Manages the scraping process and writes the scraped data to a CSV file.
-
-Usage:
-1. The script initializes a headless Chrome WebDriver to scrape the Safeway weekly ad page.
-2. The scrape_safeway function extracts the date range and product information from the page.
-3. The save_safeway_scrape function writes the extracted data to a CSV file.
-4. The script can be run directly to perform the scraping and data saving process.
-"""
-
 import csv
+import os
 import re
 import logging
 import time
+from datetime import datetime
+from typing import Tuple, List, Optional
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-from datetime import datetime
 
 
-def scrape_safeway(retries: int = 3) -> tuple[list[str], str, str]:
+def _make_driver() -> webdriver.Chrome:
+    """Create a headless Chrome driver suitable for Docker/Cloud."""
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless=new")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    return webdriver.Chrome(options=options)
+
+
+def _parse_dates(date_text: str) -> Tuple[Optional[str], Optional[str]]:
+    date_text = date_text.strip()
+    pattern = r"([a-zA-Z]+ \d+[a-zA-Z]+) - ([a-zA-Z]+ \d+[a-zA-Z]+)"
+
+    match = re.search(pattern, date_text)
+
+    if match:
+        current_year = datetime.now().year
+        valid_from_str = f"{match.group(1)} {current_year}"
+        valid_until_str = f"{match.group(2)} {current_year}"
+
+        valid_from = datetime.strptime(valid_from_str, "%b %dth %Y").strftime(
+            "%Y-%m-%d"
+        )
+        valid_until = datetime.strptime(valid_until_str, "%b %dth %Y").strftime(
+            "%Y-%m-%d"
+        )
+        return valid_from, valid_until
+
+    return None, None
+
+
+def scrape_safeway(retries: int = 3) -> Tuple[List[str], Optional[str], Optional[str]]:
+    """
+    Scrape the Safeway Weekly Ad.
+    Returns: (all_products, valid_from_iso, valid_until_iso)
+    """
     attempt = 0
+    backoff = 5
+
     while attempt < retries:
+        driver = None
         try:
-
-            # Initialize WebDriver
-            options = webdriver.ChromeOptions()
-            options.add_argument("--headless")
-            options.add_argument("--window-size=1920,1080")
-            options.add_argument("--no-sandbox")
-            options.add_argument("--disable-dev-shm-usage")
-            driver = webdriver.Chrome(options=options)
-
-            # Open the Safeway Weekly Ad page
+            driver = _make_driver()
             driver.get("https://www.safeway.com/weeklyad/")
             time.sleep(3)
 
-            # Get Date Information --->
-            valid_from = None
-            valid_until = None
-
+            # ---- Dates (Navigation Bar iframe) ----
             try:
-                # Wait for the "Navigation Bar" iframe to be available and switch to it
-                navigation_bar = WebDriverWait(driver, 30).until(
+                nav_iframe = WebDriverWait(driver, 30).until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//iframe[@title='Navigation Bar']")
                     )
                 )
-                driver.switch_to.frame(navigation_bar)
+                driver.switch_to.frame(nav_iframe)
 
-                # Wait for the date label inside the iframe
+                css = "span.flipp-filmstrip-pub-dates flipp-validity-dates flipp-translation"
                 date_label = WebDriverWait(driver, 30).until(
-                    EC.presence_of_element_located(
-                        (
-                            By.CSS_SELECTOR,
-                            "span.flipp-filmstrip-pub-dates flipp-validity-dates flipp-translation",
-                        )
-                    )
+                    EC.presence_of_element_located((By.CSS_SELECTOR, css))
                 )
-
-                date_text = date_label.text.strip()
-
-                # Extract the date range from the date_label text
-                date_pattern = r"([a-zA-Z]+ \d+[a-zA-Z]+) - ([a-zA-Z]+ \d+[a-zA-Z]+)"
-                match = re.search(date_pattern, date_text)
-
-                if match:
-                    current_year = datetime.now().year
-                    valid_from_str = f"{match.group(1)} {current_year}"
-                    valid_until_str = f"{match.group(2)} {current_year}"
-
-                    valid_from = datetime.strptime(
-                        valid_from_str, "%b %dth %Y"
-                    ).strftime("%Y-%m-%d")
-                    valid_until = datetime.strptime(
-                        valid_until_str, "%b %dth %Y"
-                    ).strftime("%Y-%m-%d")
-
-                driver.switch_to.default_content()  # Return to the main content
-
-            except TimeoutException as e:
-                logging.error(f"Timeout extracting date info (attempt {attempt + 1})")
+                
+                valid_from, valid_until = _parse_dates(date_label.text)
+                
+                driver.switch_to.default_content()
+                
+            except TimeoutException:
+                logging.error("Timeout extracting date info (attempt %s)", attempt + 1)
                 attempt += 1
+                time.sleep(backoff)
                 continue
 
-            # Get Product information --->
-
+            # ---- Products (Main Panel iframe) ----
             all_products = []
-
+            
             try:
-                # Wait for the "Main Panel" iframe and switch to it
-                main_panel = WebDriverWait(driver, 30).until(
+                main_iframe = WebDriverWait(driver, 30).until(
                     EC.presence_of_element_located(
                         (By.XPATH, "//iframe[@title='Main Panel']")
                     )
                 )
-                driver.switch_to.frame(main_panel)
+                driver.switch_to.frame(main_iframe)
 
-                # Wait for at least one product image to appear
                 WebDriverWait(driver, 30).until(
                     EC.visibility_of_element_located((By.TAG_NAME, "sfml-flyer-image"))
                 )
-
-                # Find all flyer images
-                flyer_images = driver.find_elements(By.TAG_NAME, "sfml-flyer-image")
-
-                for flyer in flyer_images:
-
-                    flyer_items = flyer.find_elements(By.TAG_NAME, "sfml-flyer-image-a")
-                    for item in flyer_items:
-                        product_info = item.get_attribute("aria-label")
-                        if product_info:
-                            all_products.append(product_info)
+                for flyer in driver.find_elements(By.TAG_NAME, "sfml-flyer-image"):
+                    for item in flyer.find_elements(By.TAG_NAME, "sfml-flyer-image-a"):
+                        label = item.get_attribute("aria-label")
+                        if label:
+                            all_products.append(label)
 
             except TimeoutException as e:
                 logging.error(
-                    f"Scraper timed out getting product information (attempt {attempt + 1}): {e}"
+                    "Timeout getting product info (attempt %s): %s", attempt + 1, e
                 )
                 attempt += 1
+                time.sleep(backoff)
                 continue
 
             return all_products, valid_from, valid_until
 
         except Exception as e:
-            logging.error(f"Scraper attempt {attempt + 1} failed: {e}")
+            logging.exception("Scraper attempt %s failed: %s", attempt + 1, e)
             attempt += 1
-            time.sleep(5)  # Wait before retrying
+            time.sleep(backoff)
 
         finally:
-            driver.quit()
+            try:
+                if driver is not None:
+                    driver.quit()
+            except Exception:
+                pass
+
+    # All retries failed
+    return [], None, None
 
 
-def scrape_to_csv(all_products: list[str], valid_from: str, valid_until: str) -> None:
+def scrape_to_csv(all_products: List[str], valid_from: str, valid_until: str) -> str:
+    """Write CSV locally and return the path."""
+    
+    os.makedirs("./data", exist_ok=True)
     filename = f"./data/weeklyad_{valid_from}.csv"
-
-    with open(filename, "w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow([f"{valid_from} - {valid_until}"])
-
+    
+    with open(filename, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow([f"{valid_from} - {valid_until}"])
+        
         for product in all_products:
-            writer.writerow([product])
-
+            w.writerow([product])
+            
     return filename
-
-if __name__ == "__main__":
-
-    pass
