@@ -1,3 +1,0 @@
-2025-03-12 19:55:15,395 - INFO - HTTP Request: POST https://oyiigzooajxdwxibnclt.supabase.co/storage/v1/object/scrapes/safeway_flyers/weeklyad_2025-03-12.csv "HTTP/2 400 Bad Request"
-2025-03-12 19:55:15,397 - ERROR - Failure in runner.py: Error in upload_scrape: Error uploading file to Supabase: {'statusCode': 409, 'error': Duplicate, 'message': The resource already exists}
-2025-03-12 20:01:46,030 - INFO - Scraped 240 of 269 total entries.

@@ -29,10 +29,10 @@ Usage:
 """
 
 import os
+import logging
 import pandas as pd
 from supabase import create_client
 from dotenv import load_dotenv
-import logging
 
 load_dotenv(override=True)
 
