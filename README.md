@@ -1,5 +1,4 @@
 # Grocery God 
-## Last Updated: 3/12/2025
 
 ## Overview
 Grocery God is a tool designed to streamline grocery shopping by collecting and analyzing data from various stores. The project features a web app for logging grocery purchases, a scraper for collecting weekly deals from Safeway, and a data cleaning process to ensure the data is ready for analysis. All data is stored in a PostgreSQL database using Supabase.
@@ -16,6 +15,7 @@ Grocery God is a tool designed to streamline grocery shopping by collecting and 
 - **Automation**: Automate the scrape, clean, and upload process locally using cron jobs (or remotely via GitHub Actions).
 
 ## Project Structure
+### Currently Under Construction
 
 ### Modules and Functions
 
