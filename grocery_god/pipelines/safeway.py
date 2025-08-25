@@ -5,7 +5,7 @@ Author: Jack Dawson
 Date: 8/24/2025
 """
 
-from grocery_god.scraping.scraper import scrape_safeway, scrape_to_csv
+from grocery_god.scraping.scraper_pw import scrape_safeway, scrape_to_csv
 
 def main():
 

@@ -48,7 +48,7 @@ def _parse_dates(date_text: str) -> Tuple[Optional[str], Optional[str]]:
 def scrape_safeway(retries: int = 3) -> Tuple[List[str], Optional[str], Optional[str]]:
     """
     Scrape the Safeway Weekly Ad.
-    Returns: (all_products, valid_from_iso, valid_until_iso)
+    Returns: (all_products, valid_from, valid_until)
     """
     attempt = 0
     backoff = 5
