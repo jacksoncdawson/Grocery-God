@@ -168,7 +168,7 @@ def _seed_onetrust_cookies(context) -> None:
 def _scrape() -> Tuple[List[str], Optional[str], Optional[str]]:
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            headless=False,
+            headless=True,
             args=[
                 "--no-sandbox",
                 "--disable-dev-shm-usage",
@@ -181,16 +181,16 @@ def _scrape() -> Tuple[List[str], Optional[str], Optional[str]]:
             page = context.new_page()
             page.set_default_timeout(30_000)
 
-            page.goto("https://www.safeway.com/", wait_until="domcontentloaded")
-            _seed_onetrust_cookies(context)
-            page.reload(wait_until="domcontentloaded")  # picks up consent
-            page.wait_for_load_state("networkidle")
+            # page.goto("https://www.safeway.com/", wait_until="domcontentloaded")
+            # _seed_onetrust_cookies(context)
+            # page.reload(wait_until="domcontentloaded")  # picks up consent
+            # page.wait_for_load_state("networkidle")
 
             page.goto(
                 "https://www.safeway.com/weeklyad/", wait_until="domcontentloaded"
             )
 
-            _set_store_by_zip(page, zip_code="94122")
+            # _set_store_by_zip(page, zip_code="94122")
 
             valid_from, valid_until = _extract_dates_from_nav_iframe(page)
             products = _extract_products_from_main_iframe(page)
