@@ -8,6 +8,7 @@ from typing import Tuple, List, Optional
 from urllib.parse import quote
 from datetime import datetime, timedelta
 import uuid
+from pathlib import Path
 
 from playwright.sync_api import (
     Page,
@@ -79,92 +80,6 @@ def _extract_products_from_main_iframe(
     return labels
 
 
-def _set_store_by_zip(page: Page, zip_code: str, timeout_ms: int = 30_000) -> None:
-    nav = page.locator('iframe[title="Navigation Bar"]')
-    nav.wait_for(state="attached", timeout=timeout_ms)
-    nav_handle = nav.element_handle()
-    nav_frame = nav_handle.content_frame()
-
-    trigger = nav_frame.locator('xpath=//*[@id="fulFillMentAddressNav"]')
-    trigger.click(timeout=timeout_ms, trial=False)
-
-    zip_input = nav.locator(
-        '//*[@id="storeFulfillmentModal"]/div/div/div[2]/store-fulfillment-tabs/div/div[1]/input'
-    )
-    zip_input.wait_for(state="visible", timeout=timeout_ms)
-    zip_input.fill(zip_code)
-    zip_input.press("Enter")
-
-    # Wait for the store list to appear
-    store_list = nav.locator('//*[@id="fulfilmentInStore"]/div/div')
-    store_list.wait_for(state="visible", timeout=timeout_ms)
-
-    # Find all store cards
-    store_cards = nav.locator('//*[@id="fulfilmentInStore"]/div/div/div')
-    count = store_cards.count()
-    found = False
-    for i in range(count):
-        card = store_cards.nth(i)
-        img = card.locator('.//img[@role="img"]')
-        aria_label = img.get_attribute("aria-label")
-        if aria_label and "safeway" in aria_label.lower():
-            # Click the "Select" button in this card
-            select_btn = card.locator(
-                './/a[@role="button" and contains(@data-qa, "srchrsltSlctbtn")]'
-            )
-            select_btn.click(timeout=timeout_ms)
-            found = True
-            break
-
-    if not found:
-        raise ValueError("No Safeway store found in the list.")
-
-    page.wait_for_timeout(1500)
-
-
-def _seed_onetrust_cookies(context) -> None:
-    # Build permissive consent and URL-encode values (no illegal chars)
-    now = datetime.utcnow()
-    exp = int((now + timedelta(days=365)).timestamp())
-    datestamp = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-
-    # Raw consent string (note the ';' in geolocation -> must be encoded)
-    optanon_consent_raw = (
-        f"isGpcEnabled=0&datestamp={datestamp}"
-        f"&version=6.0.0&hosts=&consentId={uuid.uuid4()}"
-        f"&interactionCount=1&landingPath=NotLandingPage"
-        f"&groups=1:1,2:1,3:1,4:1,0_0:1&geolocation=US;CA"
-    )
-    optanon_consent = quote(optanon_consent_raw, safe="")  # encode everything
-    alert_val = quote(datestamp, safe="")
-
-    # Prefer scoping by URL (simplest + reliable)
-    base_url = "https://www.safeway.com"
-
-    context.add_cookies(
-        [
-            {
-                "name": "OptanonAlertBoxClosed",
-                "value": alert_val,
-                "url": base_url,
-                "expires": exp,
-                "httpOnly": False,
-                "secure": True,
-                "sameSite": "Lax",
-            },
-            {
-                "name": "OptanonConsent",
-                "value": optanon_consent,
-                "url": base_url,
-                "expires": exp,
-                "httpOnly": False,
-                "secure": True,
-                "sameSite": "Lax",
-            },
-        ]
-    )
-
-
 def _scrape() -> Tuple[List[str], Optional[str], Optional[str]]:
     with sync_playwright() as p:
         browser = p.chromium.launch(
@@ -218,16 +133,26 @@ def scrape_safeway(
     return [], None, None
 
 
-def scrape_to_csv(all_products: List[str], valid_from: str, valid_until: str) -> str:
+def scrape_to_csv(
+    all_products: List[str],
+    valid_from: str,
+    valid_until: str,
+    output_path: str | None = None,
+) -> str:
     """Write CSV locally and return the path."""
 
-    os.makedirs("./data", exist_ok=True)
-    filename = f"./data/weeklyad_{valid_from}.csv"
+    filename = f"./weeklyad_{valid_from}.csv"
+    if output_path is None:
+        output_path = Path("./data") / filename
+    else:
+        output_path = Path(output_path) / filename
 
-    with open(filename, "w", newline="", encoding="utf-8") as f:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow([f"{valid_from} - {valid_until}"])
         for product in all_products:
             w.writerow([product])
 
-    return filename
+    return str(output_path)
