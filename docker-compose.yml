@@ -1,5 +1,5 @@
 services:
-  safeway:
+  safeway-local:
     build:
       context: .
       dockerfile: Dockerfile
@@ -13,3 +13,13 @@ services:
       - ${HOME}/.aws/sso/cache:/root/.aws/sso/cache:ro
     command: >
       python -c "from grocery_god.pipelines.safeway_lambda import handler; print(handler({}, None))"
+
+        # Build an amd64 image for ECR/Lambda; no need to run it here
+        
+  safeway-remote:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: safeway-scraper:remote
+    platform: linux/amd64
+    profiles: ["build-only"] 

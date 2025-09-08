@@ -5,9 +5,7 @@ import logging
 import time
 from datetime import datetime
 from typing import Tuple, List, Optional
-from urllib.parse import quote
-from datetime import datetime, timedelta
-import uuid
+from datetime import datetime
 from pathlib import Path
 
 from playwright.sync_api import (
@@ -80,40 +78,39 @@ def _extract_products_from_main_iframe(
     return labels
 
 
+def _launch_browser():
+    p = sync_playwright().start()
+    browser = p.chromium.launch(
+        headless=True,
+        args=[
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--single-process",
+            "--disable-gpu",
+            "--disable-software-rasterizer",
+        ],
+    )
+    context = browser.new_context()
+    return p, browser, context
+
+
 def _scrape() -> Tuple[List[str], Optional[str], Optional[str]]:
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True,
-            args=[
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--window-size=1920,1080",
-            ],
-        )
-        context = browser.new_context(viewport={"width": 1920, "height": 1080})
 
-        try:
-            page = context.new_page()
-            page.set_default_timeout(30_000)
+    p, browser, context = _launch_browser()
 
-            # page.goto("https://www.safeway.com/", wait_until="domcontentloaded")
-            # _seed_onetrust_cookies(context)
-            # page.reload(wait_until="domcontentloaded")  # picks up consent
-            # page.wait_for_load_state("networkidle")
+    try:
+        page = context.new_page()
+        page.set_default_timeout(30_000)
+        page.goto("https://www.safeway.com/weeklyad/", wait_until="domcontentloaded")
 
-            page.goto(
-                "https://www.safeway.com/weeklyad/", wait_until="domcontentloaded"
-            )
-
-            # _set_store_by_zip(page, zip_code="94122")
-
-            valid_from, valid_until = _extract_dates_from_nav_iframe(page)
-            products = _extract_products_from_main_iframe(page)
-        finally:
-            context.close()
-            browser.close()
-
-    return products, valid_from, valid_until
+        valid_from, valid_until = _extract_dates_from_nav_iframe(page)
+        products = _extract_products_from_main_iframe(page)
+        return products, valid_from, valid_until
+    finally:
+        context.close()
+        browser.close()
+        p.stop()
 
 
 def scrape_safeway(
@@ -141,7 +138,7 @@ def scrape_to_csv(
 ) -> str:
     """Write CSV locally and return the path."""
 
-    filename = f"./weeklyad_{valid_from}.csv"
+    filename = f"weeklyad_{valid_from}.csv"
     if output_path is None:
         output_path = Path("./data") / filename
     else:

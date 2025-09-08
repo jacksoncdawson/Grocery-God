@@ -1,8 +1,16 @@
 """
-Program Name: safeway
-Description: This script scrapes price and deal data from safeway weekly ad.
-Author: Jack Dawson
-Date: 8/24/2025
+Defines the Safeway grocery data pipeline for the Grocery God project.
+
+It provides a function to run the Safeway scraping pipeline, which:
+- Scrapes product data and sale date ranges from Safeway using the scraping utilities.
+- Validates the presence of product data and date ranges.
+- Exports the scraped data to a CSV file.
+
+Functions:
+    run_safeway_pipeline(output_path: str | None = None): Runs the Safeway scraping pipeline and exports results.
+
+Usage:
+    Run this module as a script to execute the pipeline and save results.
 """
 
 from grocery_god.scraping.safeway import scrape_safeway, scrape_to_csv
